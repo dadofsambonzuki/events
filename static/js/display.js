@@ -127,20 +127,11 @@ window.PageEventsDisplay = {
       this.attendeeFields[ttId] = []
       this.rebuildBasket()
     },
-    updateQuantity(ttId, qty) {
-      if (qty <= 0) {
-        this.removeFromBasket(ttId)
-        return
-      }
-      const existing = this.basketItems.find(
-        item => item.ticketTypeId === ttId
-      )
-      if (existing) {
-        existing.quantity = qty
-      } else {
-        this.basketItems.push({ticketTypeId: ttId, quantity: qty})
-      }
-      this.rebuildBasket()
+    addToBasketBtn(tt) {
+      const qty = this.itemQuantities[tt.id] || 0
+      if (qty <= 0) return
+      this.addToBasket(tt, qty)
+      this.expandAttendeeFor(tt.id)
     },
     expandAttendeeFor(ttId) {
       const item = this.basketItems.find(i => i.ticketTypeId === ttId)

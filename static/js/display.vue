@@ -60,7 +60,6 @@
                   :label="$t('events.quantity')"
                   min="0"
                   :max="tt.max_tickets > 0 ? tt.max_tickets - tt.sold : undefined"
-                  @update:model-value="updateQuantity(tt.id, itemQuantities[tt.id])"
                 ></q-input>
               </div>
               <div class="col-auto" v-if="itemQuantities[tt.id] > 0">
@@ -68,7 +67,7 @@
                   unelevated
                   color="primary"
                   :label="$t('events.add_to_basket')"
-                  @click="expandAttendeeFor(tt.id)"
+                  @click="addToBasketBtn(tt)"
                 ></q-btn>
               </div>
             </div>
