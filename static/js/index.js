@@ -150,6 +150,7 @@ window.PageEvents = {
         }
       },
       promoDiscountTypes: {},
+      watchonlyWallets: [],
       paymentMethods: {
         ln: false,
         onchain: false,
@@ -335,6 +336,23 @@ window.PageEvents = {
           this.events = response.data
           this.checkCanceledEvents()
           this.events.forEach(ev => this.loadTicketTypes(ev.id))
+        })
+    },
+    fetchWatchOnlyWallets() {
+      LNbits.api
+        .request(
+          'GET',
+          '/watchonly/api/v1/wallet',
+          this.g.user.wallets[0].adminkey
+        )
+        .then(response => {
+          this.watchonlyWallets = (response.data || []).map(w => ({
+            value: w.id,
+            label: (w.title || w.name || 'Wallet') + ' - ' + w.id
+          }))
+        })
+        .catch(() => {
+          console.warn('WatchOnly extension not available, onchain disabled')
         })
     },
     sendEventData() {
@@ -812,11 +830,12 @@ window.PageEvents = {
       this.getTickets()
       this.getAllTickets()
       this.getEvents()
+      this.fetchWatchOnlyWallets()
       if (this.g.allowedCurrencies && this.g.allowedCurrencies.length > 0) {
         this.currencies = ['sats', ...this.g.allowedCurrencies]
       } else {
         this.currencies = ['sats', ...this.g.currencies]
       }
     }
-  }
+  },
 }

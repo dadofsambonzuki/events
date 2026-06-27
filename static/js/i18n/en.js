@@ -50,6 +50,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     ln_wallet_label: 'LN Wallet',
     ln_wallet_hint: 'Wallet to receive Lightning payments. Leave empty to use the event wallet.',
     onchain_wallet_label: 'Onchain Wallet',
+    onchain_disabled_hint: 'Onchain Wallet (WatchOnly) extension must be activated and have a wallet.',
     fiat_payment_hint: 'Uses SatsPay fiat providers (configured in SatsPay extension).',
     advanced_options: 'Advanced options',
     conditional_events_title: 'Conditional Events',

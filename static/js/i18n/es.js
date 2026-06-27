@@ -54,6 +54,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     ln_wallet_label: 'Monedero LN',
     ln_wallet_hint: 'Monedero para recibir pagos Lightning. Dejar vacío para usar el monedero del evento.',
     onchain_wallet_label: 'Monedero Onchain',
+    onchain_disabled_hint: 'La extensión Onchain Wallet (WatchOnly) debe estar activada y tener un monedero.',
     fiat_payment_hint: 'Usa los proveedores fiat de SatsPay (configurados en la extensión SatsPay).',
     advanced_options: 'Opciones avanzadas',
     conditional_events_title: 'Eventos condicionales',

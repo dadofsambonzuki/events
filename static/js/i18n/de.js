@@ -52,6 +52,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     ln_wallet_label: 'LN Wallet',
     ln_wallet_hint: 'Wallet für Lightning-Zahlungen. Leer lassen, um die Event-Wallet zu verwenden.',
     onchain_wallet_label: 'Onchain Wallet',
+    onchain_disabled_hint: 'Die Onchain Wallet (WatchOnly) Erweiterung muss aktiviert sein und eine Wallet haben.',
     fiat_payment_hint: 'Verwendet SatsPay Fiat-Anbieter (in der SatsPay-Erweiterung konfiguriert).',
     advanced_options: 'Erweiterte Optionen',
     conditional_events_title: 'Bedingte Veranstaltungen',

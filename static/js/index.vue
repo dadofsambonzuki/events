@@ -501,12 +501,17 @@
               </div>
             </div>
             <div class="row q-col-gutter-sm">
-              <div class="col-auto">
+              <div v-if="watchonlyWallets.length > 0" class="col-auto">
                 <q-checkbox
                   v-model="paymentMethods.onchain"
                   :label="$t('events.onchain')"
                   left-label
                 ></q-checkbox>
+              </div>
+              <div v-else class="col-auto">
+                <q-checkbox :value="false" :label="$t('events.onchain')" left-label disabled>
+                  <q-tooltip>{{ $t('events.onchain_disabled_hint') }}</q-tooltip>
+                </q-checkbox>
               </div>
               <div class="col">
                 <q-select
@@ -515,7 +520,7 @@
                   dense
                   emit-value
                   v-model="formDialog.data.extra.onchain_wallet_id"
-                  :options="g.user.walletOptions"
+                  :options="watchonlyWallets"
                   :label="$t('events.onchain_wallet_label')"
                 ></q-select>
               </div>
