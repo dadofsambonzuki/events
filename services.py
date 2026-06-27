@@ -85,7 +85,9 @@ def _apply_promo_codes(
     for promo in promos:
         if not promo.active:
             continue
-        if promo.max_uses is not None and promo.used_count >= promo.max_uses:
+        if (promo.max_uses is not None
+                and promo.max_uses > 0
+                and promo.used_count >= promo.max_uses):
             continue
         discount_amount = _effective_discount(promo, current_price)
         if discount_amount <= 0:

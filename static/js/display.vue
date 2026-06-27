@@ -157,7 +157,7 @@
           </div>
           <q-separator></q-separator>
           <div class="q-mt-sm">
-            <div class="row q-col-gutter-sm">
+            <div class="row items-center q-col-gutter-sm">
               <div class="col">
                 <q-input
                   filled
@@ -168,12 +168,13 @@
                   @keyup.enter="applyPromoCode"
                 ></q-input>
               </div>
-              <div class="col-auto flex items-end q-pb-sm">
+              <div class="col-auto">
                 <q-btn
                   unelevated
-                  color="secondary"
+                  color="primary"
                   :label="$t('events.apply')"
                   :loading="applyingPromo"
+                  :disable="!basketItems.length"
                   @click="applyPromoCode"
                 ></q-btn>
               </div>
