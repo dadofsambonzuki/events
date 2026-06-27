@@ -149,6 +149,7 @@ window.PageEvents = {
           }
         }
       },
+      promoDiscountTypes: {},
       emailAllDialog: {
         show: false,
         eventId: null,
@@ -622,6 +623,14 @@ window.PageEvents = {
           promo_codes: [...(event.extra?.promo_codes || [])]
         }
       }
+      this.promoDiscountTypes = {}
+      ;(event.extra?.promo_codes || []).forEach((code, idx) => {
+        if (code.discount_fixed != null) {
+          this.promoDiscountTypes[idx] = 'fixed'
+        } else {
+          this.promoDiscountTypes[idx] = 'percent'
+        }
+      })
       this.promoCodesDialog.show = true
     },
     resetPromoCodesDialog() {
@@ -634,17 +643,30 @@ window.PageEvents = {
           promo_codes: []
         }
       }
+      this.promoDiscountTypes = {}
     },
     addPromoCodeToDialog() {
+      const idx = this.promoCodesDialog.data.extra.promo_codes.length
       this.promoCodesDialog.data.extra.promo_codes.push({
         code: '',
-        discount_percent: null,
-        discount_fixed: null,
+        discount_percent: undefined,
+        discount_fixed: undefined,
         active: true,
         combinable: true,
         max_uses: null,
         used_count: 0
       })
+      this.promoDiscountTypes[idx] = 'percent'
+    },
+    onPromoDiscountTypeChange(index, type) {
+      this.promoDiscountTypes[index] = type
+      const code = this.promoCodesDialog.data.extra.promo_codes[index]
+      if (!code) return
+      if (type === 'fixed') {
+        code.discount_percent = undefined
+      } else {
+        code.discount_fixed = undefined
+      }
     },
     savePromoCodes() {
       const data = this.promoCodesDialog.data

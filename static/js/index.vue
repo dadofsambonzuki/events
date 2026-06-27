@@ -807,40 +807,49 @@
 
             <q-separator class="q-my-sm" spaced></q-separator>
             <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>
-            <div class="row q-col-gutter-sm">
-              <div class="col-6">
-                <q-input
-                  filled
-                  dense
-                  v-model.number="
-                    promoCodesDialog.data.extra.promo_codes[index].discount_percent
-                  "
-                  type="number"
-                  :label="$t('events.discount_percent_label')"
-                  min="0"
-                  max="100"
-                >
-                  <template v-slot:after>
-                    <span>%</span>
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-6">
-                <q-input
-                  filled
-                  dense
-                  v-model.number="
-                    promoCodesDialog.data.extra.promo_codes[index].discount_fixed
-                  "
-                  type="number"
-                  :label="$t('events.discount_fixed_label')"
-                  min="0"
-                >
-                  <template v-slot:after>
-                    <span>{{ promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency }}</span>
-                  </template>
-                </q-input>
-              </div>
+            <q-btn-toggle
+              v-model="promoDiscountTypes[index]"
+              toggle-color="primary"
+              :options="[
+                {label: '%', value: 'percent'},
+                {label: promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency, value: 'fixed'}
+              ]"
+              dense
+            ></q-btn-toggle>
+            <div class="q-mt-sm">
+              <q-input
+                v-if="promoDiscountTypes[index] !== 'fixed'"
+                filled
+                dense
+                v-model.number="
+                  promoCodesDialog.data.extra.promo_codes[index].discount_percent
+                "
+                type="number"
+                :label="$t('events.discount_percent_label')"
+                min="0"
+                max="100"
+                @update:model-value="onPromoDiscountTypeChange(index, 'percent')"
+              >
+                <template v-slot:after>
+                  <span>%</span>
+                </template>
+              </q-input>
+              <q-input
+                v-else
+                filled
+                dense
+                v-model.number="
+                  promoCodesDialog.data.extra.promo_codes[index].discount_fixed
+                "
+                type="number"
+                :label="$t('events.discount_fixed_label')"
+                min="0"
+                @update:model-value="onPromoDiscountTypeChange(index, 'fixed')"
+              >
+                <template v-slot:after>
+                  <span>{{ promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency }}</span>
+                </template>
+              </q-input>
             </div>
           </div>
 

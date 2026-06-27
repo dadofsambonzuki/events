@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import Query
 from lnbits.db import FilterModel
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, root_validator, validator
 
 
 class PromoCode(BaseModel):
@@ -30,6 +30,16 @@ class PromoCode(BaseModel):
         if v is not None:
             assert v >= 0, "Fixed discount must be >= 0."
         return v
+
+    @root_validator
+    def validate_discount_exclusive(cls, values):
+        percent = values.get("discount_percent")
+        fixed = values.get("discount_fixed")
+        if percent is not None and fixed is not None:
+            raise ValueError(
+                "Promo code must have either a percent OR a fixed discount, not both."
+            )
+        return values
 
 
 class TicketType(BaseModel):
