@@ -62,53 +62,14 @@
                   :max="tt.max_tickets > 0 ? tt.max_tickets - tt.sold : undefined"
                 ></q-input>
               </div>
-              <div class="col-auto" v-if="itemQuantities[tt.id] > 0">
+              <div class="col-auto">
                 <q-btn
                   unelevated
                   color="primary"
                   :label="$t('events.add_to_basket')"
+                  :disable="!itemQuantities[tt.id] || itemQuantities[tt.id] <= 0"
                   @click="addToBasketBtn(tt)"
                 ></q-btn>
-              </div>
-            </div>
-
-            <q-separator class="q-my-md" v-if="itemQuantities[tt.id] > 0 && attendeeFields[tt.id]?.length > 0" />
-
-            <div v-if="itemQuantities[tt.id] > 0 && attendeeFields[tt.id]?.length > 0">
-              <div class="row items-center q-mb-sm">
-                <div class="text-subtitle2 q-mr-sm">Attendees for {{ tt.name }}</div>
-                <q-checkbox
-                  v-model="copyDetailsToAll[tt.id]"
-                  :label="$t('events.copy_details_to_all')"
-                  dense
-                  @update:model-value="onCopyDetails(tt.id)"
-                ></q-checkbox>
-              </div>
-              <div
-                v-for="(attendee, idx) in attendeeFields[tt.id]"
-                :key="idx"
-                class="row q-col-gutter-sm q-mb-sm"
-              >
-                <div class="col-12 col-md-5">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="attendee.name"
-                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('events.name')}`"
-                    :rules="[val => nameValidation(val)]"
-                  ></q-input>
-                </div>
-                <div class="col-12 col-md-5">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="attendee.email"
-                    type="email"
-                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('email')}`"
-                    :rules="[val => !!val || $t('events.required'), val => emailValidation(val)]"
-                    lazy-rules
-                  ></q-input>
-                </div>
               </div>
             </div>
           </q-card-section>
@@ -155,7 +116,48 @@
               ></q-btn>
             </div>
           </div>
-          <q-separator></q-separator>
+
+          <div v-for="bi in basket" :key="'att-'+bi.ticketTypeId" class="q-mt-sm">
+            <template v-if="attendeeFields[bi.ticketTypeId]?.length > 0">
+              <div class="row items-center q-mb-sm">
+                <div class="text-subtitle2 q-mr-sm">{{ $t('events.attendees_for') }} {{ bi.name }}</div>
+                <q-checkbox
+                  v-model="copyDetailsToAll[bi.ticketTypeId]"
+                  :label="$t('events.copy_details_to_all')"
+                  dense
+                  @update:model-value="onCopyDetails(bi.ticketTypeId)"
+                ></q-checkbox>
+              </div>
+              <div
+                v-for="(attendee, idx) in attendeeFields[bi.ticketTypeId]"
+                :key="idx"
+                class="row q-col-gutter-sm q-mb-sm"
+              >
+                <div class="col-12 col-md-5">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="attendee.name"
+                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('events.name')}`"
+                    :rules="[val => nameValidation(val)]"
+                  ></q-input>
+                </div>
+                <div class="col-12 col-md-5">
+                  <q-input
+                    filled
+                    dense
+                    v-model.trim="attendee.email"
+                    type="email"
+                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('email')}`"
+                    :rules="[val => !!val || $t('events.required'), val => emailValidation(val)]"
+                    lazy-rules
+                  ></q-input>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <q-separator v-if="basket.length > 0"></q-separator>
           <div class="q-mt-sm">
             <div class="row items-center q-col-gutter-sm">
               <div class="col">

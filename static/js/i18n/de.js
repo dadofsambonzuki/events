@@ -201,6 +201,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     add_to_basket: 'In den Warenkorb',
     copy_details_to_all: 'Auf alle übertragen',
     attendee: 'Teilnehmer',
+    attendees_for: 'Teilnehmer für',
     name: 'Name',
     basket: 'Warenkorb',
     promo_code_comma_separated: 'Promo-Code(s) (durch Kommas getrennt)',

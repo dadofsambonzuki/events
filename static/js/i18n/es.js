@@ -201,6 +201,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     add_to_basket: 'Añadir a la cesta',
     copy_details_to_all: 'Copiar a todos',
     attendee: 'Asistente',
+    attendees_for: 'Asistentes para',
     name: 'Nombre',
     basket: 'Cesta',
     promo_code_comma_separated: 'Código(s) promocional(es) (separados por comas)',

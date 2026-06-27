@@ -194,6 +194,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     add_to_basket: 'Add to Basket',
     copy_details_to_all: 'Copy to All',
     attendee: 'Attendee',
+    attendees_for: 'Attendees for',
     name: 'Name',
     basket: 'Basket',
     promo_code_comma_separated: 'Promo Code(s) (comma separated)',
