@@ -43,6 +43,14 @@ window.i18n.global.mergeLocaleMessage('en', {
     wave_allow_fiat_hint:
       'Lets attendees pay through a configured fiat provider using this wave currency.',
     fiat_checkout_currency: 'Fiat checkout currency',
+    payment_methods: 'Payment Methods',
+    lightning: 'Lightning',
+    fiat: 'Fiat',
+    onchain: 'Onchain',
+    ln_wallet_label: 'LN Wallet',
+    ln_wallet_hint: 'Wallet to receive Lightning payments. Leave empty to use the event wallet.',
+    onchain_wallet_label: 'Onchain Wallet',
+    fiat_payment_hint: 'Uses SatsPay fiat providers (configured in SatsPay extension).',
     advanced_options: 'Advanced options',
     conditional_events_title: 'Conditional Events',
     conditional_events_desc:

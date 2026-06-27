@@ -10,6 +10,19 @@
         ></q-img>
         <q-card-section class="q-pa-none">
           <h3 class="q-my-none q-pa-lg" v-text="event.name"></h3>
+          <div class="q-px-lg q-pb-md" v-if="acceptedPaymentMethods.length > 0">
+            <span class="text-caption">
+              <span v-for="(method, idx) in acceptedPaymentMethods" :key="method">
+                <q-icon
+                  :name="method === 'ln' ? 'bolt' : method === 'onchain' ? 'link' : 'credit_card'"
+                  size="xs"
+                  class="q-mr-xs"
+                ></q-icon>
+                <span v-text="method === 'ln' ? 'LN' : method === 'onchain' ? 'BTC' : method.charAt(0).toUpperCase() + method.slice(1)"></span>
+                <span v-if="idx < acceptedPaymentMethods.length - 1" class="q-mx-xs">|</span>
+              </span>
+            </span>
+          </div>
           <div v-html="formatDescription" class="q-pa-lg"></div>
         </q-card-section>
       </q-card>

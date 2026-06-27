@@ -477,29 +477,60 @@
               ></q-select>
             </div>
           </div>
-          <q-toggle
-            v-model="formDialog.data.allow_fiat"
-            :label="$t('events.allow_fiat_checkout')"
-            left-label
-            :hint="$t('events.allow_fiat_hint')"
-          ></q-toggle>
-          <q-select
-            v-if="
-              formDialog.data.allow_fiat &&
-              ['sat', 'sats'].includes(
-                (formDialog.data.currency || '').toLowerCase()
-              )
-            "
-            filled
-            dense
-            v-model="formDialog.data.fiat_currency"
-            :label="$t('events.fiat_checkout_currency')"
-            :options="
-              currencies.filter(
-                c => !['sat', 'sats'].includes((c || '').toLowerCase())
-              )
-            "
-          ></q-select>
+          <div class="q-mt-md">
+            <div class="text-subtitle2 q-mb-sm">{{ $t('events.payment_methods') }}</div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-auto">
+                <q-checkbox
+                  v-model="paymentMethods.ln"
+                  :label="$t('events.lightning')"
+                  left-label
+                ></q-checkbox>
+              </div>
+              <div class="col">
+                <q-select
+                  v-if="paymentMethods.ln"
+                  filled
+                  dense
+                  emit-value
+                  v-model="formDialog.data.extra.ln_wallet_id"
+                  :options="g.user.walletOptions"
+                  :label="$t('events.ln_wallet_label')"
+                  :hint="$t('events.ln_wallet_hint')"
+                ></q-select>
+              </div>
+            </div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-auto">
+                <q-checkbox
+                  v-model="paymentMethods.onchain"
+                  :label="$t('events.onchain')"
+                  left-label
+                ></q-checkbox>
+              </div>
+              <div class="col">
+                <q-select
+                  v-if="paymentMethods.onchain"
+                  filled
+                  dense
+                  emit-value
+                  v-model="formDialog.data.extra.onchain_wallet_id"
+                  :options="g.user.walletOptions"
+                  :label="$t('events.onchain_wallet_label')"
+                ></q-select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-auto">
+                <q-checkbox
+                  v-model="paymentMethods.fiat"
+                  :label="$t('events.fiat')"
+                  left-label
+                  :hint="$t('events.fiat_payment_hint')"
+                ></q-checkbox>
+              </div>
+            </div>
+          </div>
           <q-expansion-item
             group="advanced"
             icon="settings"

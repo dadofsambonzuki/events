@@ -45,6 +45,14 @@ window.i18n.global.mergeLocaleMessage('de', {
     wave_allow_fiat_hint:
       'Ermöglicht Teilnehmern, über einen konfigurierten Fiat-Anbieter mit der Wellenwährung zu bezahlen.',
     fiat_checkout_currency: 'Fiat-Checkout-Währung',
+    payment_methods: 'Zahlungsmethoden',
+    lightning: 'Lightning',
+    fiat: 'Fiat',
+    onchain: 'Onchain',
+    ln_wallet_label: 'LN Wallet',
+    ln_wallet_hint: 'Wallet für Lightning-Zahlungen. Leer lassen, um die Event-Wallet zu verwenden.',
+    onchain_wallet_label: 'Onchain Wallet',
+    fiat_payment_hint: 'Verwendet SatsPay Fiat-Anbieter (in der SatsPay-Erweiterung konfiguriert).',
     advanced_options: 'Erweiterte Optionen',
     conditional_events_title: 'Bedingte Veranstaltungen',
     conditional_events_desc:

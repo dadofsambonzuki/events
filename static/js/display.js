@@ -73,6 +73,13 @@ window.PageEventsDisplay = {
     },
     allowNostrNotifications() {
       return Boolean(this.event?.extra?.nostr_notifications)
+    },
+    acceptedPaymentMethods() {
+      const pm = this.event?.extra?.payment_methods || []
+      if (!pm.length && this.event?.allow_fiat) {
+        return ['ln', 'fiat']
+      }
+      return pm
     }
   },
   methods: {

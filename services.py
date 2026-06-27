@@ -211,29 +211,64 @@ async def create_basket_with_charge(
     tickets: list[Ticket] = []
 
     if totals.total > 0:
+        methods = event.extra.payment_methods or []
+        if not methods:
+            methods = ["ln"]
+            if event.allow_fiat:
+                methods.append("fiat")
+
         internal_base = f"http://{_internal_host()}:{settings.port}"
         webhook_url = f"{internal_base}/events/api/v1/baskets/{basket_id}/satspay-webhook"
         complete_url = f"{base_url}/events/basket/{basket_id}"
 
-        charge_data = {
+        is_fiat_currency = event.currency and event.currency.lower() not in ("sat", "sats")
+
+        base_data = {
             "description": f"Tickets for {event.name}",
             "name": data.name or "",
             "webhook": webhook_url,
             "completelink": complete_url,
             "completelinktext": "View your tickets",
             "time": 1440,
-            "lnbitswallet": event.wallet,
         }
-        if event.currency and event.currency.lower() != "sat" and event.currency.lower() != "sats":
-            charge_data["currency"] = event.currency.lower()
-            charge_data["currency_amount"] = float(totals.total)
+        if is_fiat_currency:
+            base_data["currency"] = event.currency.lower()
+            base_data["currency_amount"] = float(totals.total)
         else:
-            charge_data["amount"] = totals.total
+            base_data["amount"] = totals.total
 
-        charge = await create_satspay_charge(
-            api_key=wallet_inkey,
-            data=charge_data,
-        )
+        charge_data = dict(base_data)
+        if "ln" in methods:
+            charge_data["lnbitswallet"] = event.extra.ln_wallet_id or event.wallet
+        if "onchain" in methods:
+            charge_data["onchainwallet"] = event.extra.onchain_wallet_id
+
+        charge = None
+        last_error = None
+        tried_methods = list(methods)
+
+        while tried_methods and charge is None:
+            try:
+                charge = await create_satspay_charge(
+                    api_key=wallet_inkey,
+                    data=charge_data,
+                )
+            except Exception as exc:
+                last_error = exc
+                logger.warning(f"SatsPay charge failed with methods {tried_methods}: {exc}")
+                failed = tried_methods.pop(0)
+                charge_data = dict(base_data)
+                if "ln" in tried_methods:
+                    charge_data["lnbitswallet"] = event.extra.ln_wallet_id or event.wallet
+                if "onchain" in tried_methods:
+                    charge_data["onchainwallet"] = event.extra.onchain_wallet_id
+
+        if charge is None:
+            raise ValueError(
+                f"Could not create payment for any enabled method. "
+                f"Last error: {last_error}"
+            )
+
         basket.satspay_charge_id = charge["id"]
 
     await create_basket_from_model(basket)

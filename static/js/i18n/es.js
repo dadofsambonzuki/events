@@ -47,6 +47,14 @@ window.i18n.global.mergeLocaleMessage('es', {
     wave_allow_fiat_hint:
       'Permite a los asistentes pagar mediante un proveedor fiat configurado usando la moneda de esta oleada.',
     fiat_checkout_currency: 'Moneda de pago fiat',
+    payment_methods: 'Métodos de Pago',
+    lightning: 'Lightning',
+    fiat: 'Fiat',
+    onchain: 'Onchain',
+    ln_wallet_label: 'Monedero LN',
+    ln_wallet_hint: 'Monedero para recibir pagos Lightning. Dejar vacío para usar el monedero del evento.',
+    onchain_wallet_label: 'Monedero Onchain',
+    fiat_payment_hint: 'Usa los proveedores fiat de SatsPay (configurados en la extensión SatsPay).',
     advanced_options: 'Opciones avanzadas',
     conditional_events_title: 'Eventos condicionales',
     conditional_events_desc:

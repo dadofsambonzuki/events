@@ -150,6 +150,11 @@ window.PageEvents = {
         }
       },
       promoDiscountTypes: {},
+      paymentMethods: {
+        ln: false,
+        onchain: false,
+        fiat: false
+      },
       emailAllDialog: {
         show: false,
         eventId: null,
@@ -347,6 +352,11 @@ window.PageEvents = {
           data.fiat_currency = 'GBP'
         }
       }
+      const methods = []
+      if (this.paymentMethods.ln) methods.push('ln')
+      if (this.paymentMethods.onchain) methods.push('onchain')
+      if (this.paymentMethods.fiat) methods.push('fiat')
+      data.extra.payment_methods = methods
       if (data.id) {
         this.updateEvent(wallet, data)
       } else {
@@ -362,6 +372,10 @@ window.PageEvents = {
             promo_codes: [...((data.extra && data.extra.promo_codes) || [])],
           }
         }
+        const pm = (data.extra && data.extra.payment_methods) || []
+        this.paymentMethods.ln = pm.includes('ln')
+        this.paymentMethods.onchain = pm.includes('onchain')
+        this.paymentMethods.fiat = pm.includes('fiat')
       } else {
         this.formDialog.data = {
           currency: 'sats',
@@ -374,9 +388,15 @@ window.PageEvents = {
             nostr_notifications: false,
             promo_codes: [],
             notification_subject: '',
-            notification_body: ''
+            notification_body: '',
+            payment_methods: [],
+            ln_wallet_id: null,
+            onchain_wallet_id: null
           }
         }
+        this.paymentMethods.ln = false
+        this.paymentMethods.onchain = false
+        this.paymentMethods.fiat = false
       }
       this.formDialog.show = true
     },
@@ -393,9 +413,15 @@ window.PageEvents = {
           nostr_notifications: false,
           promo_codes: [],
           notification_subject: '',
-          notification_body: ''
+          notification_body: '',
+          payment_methods: [],
+          ln_wallet_id: null,
+          onchain_wallet_id: null
         }
       }
+      this.paymentMethods.ln = false
+      this.paymentMethods.onchain = false
+      this.paymentMethods.fiat = false
     },
     createEvent(wallet, data) {
       LNbits.api
