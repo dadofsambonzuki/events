@@ -56,7 +56,13 @@ async def create_satspay_charge(api_key: str, data: dict) -> dict[str, Any]:
             headers={"X-API-KEY": api_key},
             json=data,
         )
-        resp.raise_for_status()
+        if resp.is_error:
+            body = ""
+            try:
+                body = resp.json().get("detail", resp.text)
+            except Exception:
+                body = resp.text or "Unknown error"
+            raise ValueError(f"SatsPay error: {body}")
         return resp.json()
 
 
