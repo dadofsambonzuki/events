@@ -36,9 +36,7 @@ class PromoCode(BaseModel):
         percent = values.get("discount_percent")
         fixed = values.get("discount_fixed")
         if percent is not None and fixed is not None:
-            raise ValueError(
-                "Promo code must have either a percent OR a fixed discount, not both."
-            )
+            values["discount_fixed"] = None
         return values
 
 
