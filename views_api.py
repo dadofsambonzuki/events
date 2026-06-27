@@ -107,12 +107,10 @@ async def api_create_event(
             event_id=event.id,
             name="General Admission",
             price=data.price_per_ticket,
-            currency=data.currency,
             max_tickets=data.amount_tickets,
             available_from=data.event_start_date,
             available_to=data.closing_date,
             allow_fiat=data.allow_fiat,
-            fiat_currency=data.fiat_currency,
         )
         await create_ticket_type(default_tt)
     return event

@@ -655,18 +655,9 @@
                 dense
                 v-model.number="ticketTypeDialog.data.price"
                 type="number"
-                :label="$t('events.price_label', {currency: ticketTypeDialog.data.currency})"
+                :label="$t('events.price_label', {currency: getEventCurrency(ticketTypeDialog.eventId)})"
                 min="0"
               ></q-input>
-            </div>
-            <div class="col">
-              <q-select
-                filled
-                dense
-                v-model="ticketTypeDialog.data.currency"
-                :label="$t('events.unit_label')"
-                :options="currencies"
-              ></q-select>
             </div>
           </div>
           <div class="row q-col-gutter-sm">
@@ -717,18 +708,6 @@
             :label="$t('events.allow_fiat_checkout')"
             left-label
           ></q-toggle>
-          <q-select
-            v-if="ticketTypeDialog.data.allow_fiat"
-            filled
-            dense
-            v-model="ticketTypeDialog.data.fiat_currency"
-            :label="$t('events.fiat_checkout_currency')"
-            :options="
-              currencies.filter(
-                c => !['sat', 'sats'].includes((c || '').toLowerCase())
-              )
-            "
-          ></q-select>
           <div class="row q-mt-lg">
             <q-btn unelevated color="primary" type="submit">{{
               ticketTypeDialog.isEdit

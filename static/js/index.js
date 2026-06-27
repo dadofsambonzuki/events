@@ -119,26 +119,24 @@ window.PageEvents = {
           }
         }
       },
-      ticketTypeDialog: {
-        show: false,
-        eventId: null,
-        isEdit: false,
-        wallet: null,
-        data: {
-          id: null,
-          name: '',
-          description: '',
-          image_url: null,
-          price: 0,
-          currency: 'sats',
-          max_tickets: 0,
-          available_from: '',
-          available_to: '',
-          allow_fiat: false,
-          fiat_currency: 'GBP',
-          sort_order: 0
-        }
-      },
+       ticketTypeDialog: {
+         show: false,
+         eventId: null,
+         isEdit: false,
+         wallet: null,
+         data: {
+           id: null,
+           name: '',
+           description: '',
+           image_url: null,
+           price: 0,
+           max_tickets: 0,
+           available_from: '',
+           available_to: '',
+           allow_fiat: false,
+           sort_order: 0
+         }
+       },
       ticketTypesByEvent: {},
       promoCodesDialog: {
         show: false,
@@ -162,10 +160,12 @@ window.PageEvents = {
   },
   methods: {
     ticketTypeChipLabel(tt) {
-      const price = this.isFiatCurrency(tt.currency)
+      const event = this.events.find(e => e.id === tt.event_id)
+      const currency = event?.currency || 'sat'
+      const price = this.isFiatCurrency(currency)
         ? LNbits.utils.formatCurrency(
             Number(tt.price || 0).toFixed(2),
-            tt.currency
+            currency
           )
         : `${tt.price} sats`
       return this.$t('events.tt_chip', {
@@ -188,6 +188,10 @@ window.PageEvents = {
     },
     isFiatCurrency(currency) {
       return !['sat', 'sats'].includes((currency || '').toLowerCase())
+    },
+    getEventCurrency(eventId) {
+      const event = this.events.find(e => e.id === eventId)
+      return event?.currency || 'sats'
     },
     normalizePromoCodes(promoCodes = []) {
       return promoCodes
@@ -499,12 +503,10 @@ window.PageEvents = {
           description: tt?.description || '',
           image_url: tt?.image_url || null,
           price: tt?.price || 0,
-          currency: tt?.currency || event.currency || 'sats',
           max_tickets: tt?.max_tickets || 0,
           available_from: tt?.available_from || event.event_start_date || '',
           available_to: tt?.available_to || event.closing_date || '',
           allow_fiat: isEdit ? Boolean(tt?.allow_fiat) : Boolean(event.allow_fiat),
-          fiat_currency: tt?.fiat_currency || event.fiat_currency || 'GBP',
           sort_order: tt?.sort_order || 0
         }
       }
@@ -521,12 +523,10 @@ window.PageEvents = {
           description: '',
           image_url: null,
           price: 0,
-          currency: 'sats',
           max_tickets: 0,
           available_from: '',
           available_to: '',
           allow_fiat: false,
-          fiat_currency: 'GBP',
           sort_order: 0
         }
       }

@@ -33,7 +33,7 @@
             <div class="row q-col-gutter-sm q-mb-sm">
               <div class="col-auto">
                 <q-chip color="primary" text-color="white">
-                  {{ tt.price }} {{ tt.currency }}
+                  {{ tt.price }} {{ basketCurrency }}
                 </q-chip>
               </div>
               <div v-if="tt.max_tickets > 0" class="col-auto">
@@ -143,7 +143,7 @@
           <h5 class="q-mt-none" v-text="$t('events.basket')"></h5>
           <div v-for="bi in basket" :key="bi.ticketTypeId" class="row items-center q-mb-sm q-col-gutter-sm">
             <div class="col" v-text="`${bi.name} x${bi.quantity}`"></div>
-            <div class="col-auto" v-text="`${bi.subtotal} ${bi.currency}`"></div>
+            <div class="col-auto" v-text="`${bi.subtotal} ${basketCurrency}`"></div>
             <div class="col-auto">
               <q-btn
                 flat
@@ -171,7 +171,7 @@
             </div>
           </div>
           <div class="text-h6 q-mt-md text-right">
-            Total: {{ basketTotal }} sats
+            Total: {{ basketTotal }} {{ basketCurrency }}
           </div>
         </q-card-section>
         <q-card-actions align="right">

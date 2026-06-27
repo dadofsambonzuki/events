@@ -33,6 +33,10 @@ window.PageEventsDisplay = {
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.event?.info || '')
     },
+    basketCurrency() {
+      const c = this.event?.currency || 'sat'
+      return c === 'sat' ? 'sats' : c
+    },
     basket() {
       return this.basketItems
         .map(item => {
@@ -43,7 +47,6 @@ window.PageEventsDisplay = {
             name: tt.name,
             quantity: item.quantity,
             price: tt.price,
-            currency: tt.currency,
             subtotal: tt.price * item.quantity
           }
         })
