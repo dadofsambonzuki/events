@@ -205,6 +205,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     basket: 'Warenkorb',
     promo_code_comma_separated: 'Promo-Code(s) (durch Kommas getrennt)',
     promo_code_hint: 'Promo-Codes durch Kommas getrennt eingeben',
-    checkout: 'Zur Kasse'
+    checkout: 'Zur Kasse',
+    apply: 'Anwenden'
   }
 })

@@ -157,13 +157,27 @@
           </div>
           <q-separator></q-separator>
           <div class="q-mt-sm">
-            <q-input
-              filled
-              dense
-              v-model.trim="promoCodeInput"
-              :label="$t('events.promo_code_comma_separated')"
-              :hint="$t('events.promo_code_hint')"
-            ></q-input>
+            <div class="row q-col-gutter-sm">
+              <div class="col">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="promoCodeInput"
+                  :label="$t('events.promo_code_comma_separated')"
+                  :hint="$t('events.promo_code_hint')"
+                  @keyup.enter="applyPromoCode"
+                ></q-input>
+              </div>
+              <div class="col-auto flex items-end q-pb-sm">
+                <q-btn
+                  unelevated
+                  color="secondary"
+                  :label="$t('events.apply')"
+                  :loading="applyingPromo"
+                  @click="applyPromoCode"
+                ></q-btn>
+              </div>
+            </div>
           </div>
           <div v-if="discountBreakdown.length > 0" class="q-mt-sm">
             <div v-for="(d, idx) in discountBreakdown" :key="idx" class="text-caption text-positive">

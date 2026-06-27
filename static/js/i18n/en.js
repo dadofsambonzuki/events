@@ -198,6 +198,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     basket: 'Basket',
     promo_code_comma_separated: 'Promo Code(s) (comma separated)',
     promo_code_hint: 'Enter promo codes separated by commas',
-    checkout: 'Checkout'
+    checkout: 'Checkout',
+    apply: 'Apply'
   }
 })

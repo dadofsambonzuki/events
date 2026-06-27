@@ -45,10 +45,12 @@ from .crud import (
 from .models import (
     BasketItem,
     BasketResponse,
+    BasketTotals,
     CreateBasket,
     CreateEvent,
     CreateTicket,
     Event,
+    PromoValidateRequest,
     PublicEvent,
     PublicTicket,
     Ticket,
@@ -56,6 +58,7 @@ from .models import (
     TicketType,
 )
 from .services import (
+    calculate_basket_total,
     create_basket_with_charge,
     handle_basket_payment,
     refund_tickets,
@@ -423,6 +426,18 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
         totals=totals,
         payment_request=None,
     )
+
+
+@events_api_router.post("/promo/validate/{event_id}")
+async def api_validate_promo_codes(
+    event_id: str, data: PromoValidateRequest
+) -> BasketTotals:
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    return await calculate_basket_total(event, data.items, data.codes)
 
 
 @events_api_router.post("/baskets/{basket_id}/satspay-webhook")

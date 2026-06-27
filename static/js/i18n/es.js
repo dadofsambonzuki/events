@@ -205,6 +205,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     basket: 'Cesta',
     promo_code_comma_separated: 'Código(s) promocional(es) (separados por comas)',
     promo_code_hint: 'Introduce códigos promocionales separados por comas',
-    checkout: 'Pagar'
+    checkout: 'Pagar',
+    apply: 'Aplicar'
   }
 })

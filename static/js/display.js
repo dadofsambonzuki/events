@@ -11,6 +11,7 @@ window.PageEventsDisplay = {
       promoCodeInput: '',
       discountBreakdown: [],
       basketTotal: 0,
+      applyingPromo: false,
       basketItems: [],
       submitting: false,
       checkoutLoading: false,
@@ -194,6 +195,42 @@ window.PageEventsDisplay = {
       }
       this.basketTotal = subtotal
       this.discountBreakdown = []
+    },
+    async applyPromoCode() {
+      const codes = this.promoCodeInput
+        .split(',')
+        .map(c => c.trim().toUpperCase())
+        .filter(c => c.length > 0)
+      if (!codes.length) {
+        this.rebuildBasket()
+        return
+      }
+      if (!this.basketItems.length) return
+      this.applyingPromo = true
+      try {
+        const items = this.basketItems.map(bi => ({
+          ticket_type_id: bi.ticketTypeId,
+          quantity: bi.quantity
+        }))
+        const {data} = await LNbits.api.request(
+          'POST',
+          `/events/api/v1/promo/validate/${this.eventId}`,
+          null,
+          {codes, items}
+        )
+        this.basketTotal = data.total
+        this.discountBreakdown = (data.discounts_applied || []).map(d => ({
+          label: `${d.code}: ${d.amount_saved} ${this.basketCurrency}`
+        }))
+        if (!data.discounts_applied?.length && codes.length) {
+          this.discountBreakdown = [{label: 'No valid promo codes found'}]
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+        this.rebuildBasket()
+      } finally {
+        this.applyingPromo = false
+      }
     },
     nameValidation(val) {
       const regex = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g

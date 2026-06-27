@@ -240,6 +240,11 @@ class BasketTotals(BaseModel):
     discounts_applied: list[BasketDiscount] = Field(default_factory=list)
 
 
+class PromoValidateRequest(BaseModel):
+    codes: list[str] = Field(default_factory=list)
+    items: list[dict] = Field(default_factory=list)
+
+
 class Basket(BaseModel):
     id: str
     event_id: str
