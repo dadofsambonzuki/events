@@ -45,10 +45,14 @@ from .models import (
 )
 
 
+def _internal_host() -> str:
+    return "127.0.0.1" if settings.host in ("0.0.0.0", "::") else settings.host
+
+
 async def create_satspay_charge(api_key: str, data: dict) -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            url=f"http://{settings.host}:{settings.port}/satspay/api/v1/charge",
+            url=f"http://{_internal_host()}:{settings.port}/satspay/api/v1/charge",
             headers={"X-API-KEY": api_key},
             json=data,
         )
@@ -59,7 +63,7 @@ async def create_satspay_charge(api_key: str, data: dict) -> dict[str, Any]:
 async def get_satspay_charge(api_key: str, charge_id: str) -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            url=f"http://{settings.host}:{settings.port}/satspay/api/v1/charge/{charge_id}",
+            url=f"http://{_internal_host()}:{settings.port}/satspay/api/v1/charge/{charge_id}",
             headers={"X-API-KEY": api_key},
         )
         resp.raise_for_status()
@@ -207,7 +211,7 @@ async def create_basket_with_charge(
     tickets: list[Ticket] = []
 
     if totals.total > 0:
-        internal_base = f"http://{settings.host}:{settings.port}"
+        internal_base = f"http://{_internal_host()}:{settings.port}"
         webhook_url = f"{internal_base}/events/api/v1/baskets/{basket_id}/satspay-webhook"
         complete_url = f"{base_url}/events/basket/{basket_id}"
 
