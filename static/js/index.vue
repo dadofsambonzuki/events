@@ -207,7 +207,7 @@
                           >
                             <span
                               v-text="
-                                `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? code.discount_fixed + ' sats' : ''}`
+                                `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? ` ${code.discount_fixed} ${props.row.currency === 'sat' ? 'sats' : props.row.currency}` : ''}`
                               "
                             ></span>
                           </q-chip>
@@ -837,7 +837,7 @@
                   min="0"
                 >
                   <template v-slot:after>
-                    <span>sats</span>
+                    <span>{{ promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency }}</span>
                   </template>
                 </q-input>
               </div>
