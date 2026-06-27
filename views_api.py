@@ -177,12 +177,21 @@ async def api_get_event(event_id: str) -> Event:
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
 
-    if event.amount_tickets < 1:
+    ticket_types = await get_ticket_types(event_id)
+    if not ticket_types:
+        raise HTTPException(status_code=HTTPStatus.GONE, detail="Event is sold out.")
+    today_date = datetime.now(timezone.utc).date()
+    available_types = [
+        tt for tt in ticket_types
+        if datetime.strptime(tt.available_from, "%Y-%m-%d").date() <= today_date
+        and datetime.strptime(tt.available_to, "%Y-%m-%d").date() >= today_date
+        and (tt.max_tickets == 0 or tt.sold < tt.max_tickets)
+    ]
+    if not available_types:
         raise HTTPException(status_code=HTTPStatus.GONE, detail="Event is sold out.")
 
-    today = datetime.now(timezone.utc).date()
     is_sales_closed = (
-        today > datetime.strptime(event.closing_date, "%Y-%m-%d").date()
+        today_date > datetime.strptime(event.closing_date, "%Y-%m-%d").date()
     )
     is_min_tickets_met = (
         event.sold >= event.extra.min_tickets if event.extra.conditional else True

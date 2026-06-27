@@ -543,6 +543,9 @@ window.PageEvents = {
         ...this.ticketTypeDialog.data,
         event_id: this.ticketTypeDialog.eventId
       }
+      if (!this.ticketTypeDialog.isEdit) {
+        delete payload.id
+      }
 
       const request = this.ticketTypeDialog.isEdit
         ? LNbits.api.request(

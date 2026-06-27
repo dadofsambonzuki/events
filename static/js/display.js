@@ -1,4 +1,4 @@
-window.app = Vue.createApp({
+window.PageEventsDisplay = {
   template: '#page-events-display',
   data() {
     return {
@@ -267,12 +267,4 @@ window.app = Vue.createApp({
       }
     }
   }
-})
-
-app.config.globalProperties.utils = {
-  copyText(text) {
-    navigator.clipboard.writeText(text)
-  }
 }
-
-app.mount('#page-events-display')
