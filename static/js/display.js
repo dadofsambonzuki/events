@@ -1,161 +1,205 @@
-window.PageEventsDisplay = {
+window.app = Vue.createApp({
   template: '#page-events-display',
   data() {
     return {
       eventErrorLabel: '',
       event: null,
-      paymentReq: null,
-      redirectUrl: null,
-      formDialog: {
-        show: false,
-        data: {
-          name: '',
-          email: '',
-          refund: '',
-          nostr_identifier: '',
-          ticket_wave_id: null,
-          payment_method: 'lightning'
-        }
-      },
+      ticketTypes: [],
+      itemQuantities: {},
+      attendeeFields: {},
+      copyDetailsToAll: {},
+      promoCodeInput: '',
+      discountBreakdown: [],
+      basketTotal: 0,
+      basketItems: [],
+      submitting: false,
+      checkoutLoading: false,
       ticketLink: {
         show: false,
         data: {
           link: ''
         }
-      },
-      receive: {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        isFiat: false
-      },
-      paymentDismissMsg: null,
-      paymentWebsocket: null
+      }
     }
   },
-  async created() {
+  async mounted() {
     this.eventId = this.$route.params.id
-    this.event = await this.getEvent()
+    await this.loadEvent()
+    if (this.event) {
+      await this.loadTicketTypes()
+    }
   },
   computed: {
     formatDescription() {
       return LNbits.utils.convertMarkdown(this.event?.info || '')
     },
-    activeTicketWaves() {
-      const today = new Date().toISOString().slice(0, 10)
-      return (this.event?.extra?.ticket_waves || []).filter(
-        wave =>
-          wave.amount_tickets > 0 &&
-          wave.opening_date <= today &&
-          wave.closing_date >= today
+    basket() {
+      return this.basketItems
+        .map(item => {
+          const tt = this.ticketTypes.find(t => t.id === item.ticketTypeId)
+          if (!tt) return null
+          return {
+            ticketTypeId: tt.id,
+            name: tt.name,
+            quantity: item.quantity,
+            price: tt.price,
+            currency: tt.currency,
+            subtotal: tt.price * item.quantity
+          }
+        })
+        .filter(Boolean)
+    },
+    canCheckout() {
+      if (this.submitting || this.checkoutLoading) return false
+      const hasItems = this.basketItems.some(
+        item => item.quantity > 0
       )
-    },
-    selectedTicketWave() {
-      return (
-        this.activeTicketWaves.find(
-          wave => wave.id === this.formDialog.data.ticket_wave_id
-        ) ||
-        this.activeTicketWaves[0] ||
-        null
-      )
-    },
-    showTicketWaveSelector() {
-      return this.activeTicketWaves.length > 1
-    },
-    allowFiatCheckout() {
-      return Boolean(this.selectedTicketWave?.allow_fiat)
-    },
-    fiatCheckoutLabel() {
-      if (!this.allowFiatCheckout) return 'Fiat'
-      const unit = ['sat', 'sats'].includes(
-        (this.selectedTicketWave?.currency || '').toLowerCase()
-      )
-        ? this.selectedTicketWave?.fiat_currency
-        : this.selectedTicketWave?.currency
-      return this.$t('events.payment_fiat', {
-        unit: (unit || 'GBP').toUpperCase()
-      })
+      if (!hasItems) return false
+      for (const item of this.basketItems) {
+        if (item.quantity <= 0) continue
+        const attendees = this.attendeeFields[item.ticketTypeId] || []
+        for (const a of attendees) {
+          if (!a.name || !a.email) return false
+        }
+      }
+      return true
     },
     allowEmailNotifications() {
       return Boolean(this.event?.extra?.email_notifications)
     },
     allowNostrNotifications() {
       return Boolean(this.event?.extra?.nostr_notifications)
-    },
-    allowOnchain() {
-      return Boolean(this.event?.extra?.onchain_enabled)
-    },
-    showPaymentMethodSelector() {
-      return this.allowFiatCheckout || this.allowOnchain
-    },
-    paymentMethodOptions() {
-      const options = [
-        {label: this.$t('events.payment_lightning'), value: 'lightning'}
-      ]
-      if (this.allowFiatCheckout) {
-        options.push({label: this.fiatCheckoutLabel, value: 'fiat'})
-      }
-      if (this.allowOnchain) {
-        options.push({
-          label: this.$t('events.payment_bitcoin'),
-          value: 'onchain'
-        })
-      }
-      return options
     }
   },
   methods: {
-    async getEvent() {
+    async loadEvent() {
       try {
         const {data} = await LNbits.api.request(
           'GET',
           `/events/api/v1/events/${this.eventId}`
         )
-        const activeWaves = (data.extra?.ticket_waves || []).filter(wave => {
-          const today = new Date().toISOString().slice(0, 10)
-          return (
-            wave.amount_tickets > 0 &&
-            wave.opening_date <= today &&
-            wave.closing_date >= today
-          )
-        })
-        this.formDialog.data.ticket_wave_id =
-          activeWaves.length === 1 ? activeWaves[0].id : null
-        return data
+        this.event = data
       } catch (error) {
         this.eventErrorLabel = this.$t('events.event_unavailable')
         LNbits.utils.notifyApiError(error)
       }
     },
-    resetForm(e) {
-      e.preventDefault()
-      this.formDialog.data.name = ''
-      this.formDialog.data.email = ''
-      this.formDialog.data.refund = ''
-      this.formDialog.data.nostr_identifier = ''
-      this.formDialog.data.ticket_wave_id =
-        this.activeTicketWaves.length === 1
-          ? this.activeTicketWaves[0].id
-          : null
-      this.formDialog.data.payment_method = 'lightning'
+    async loadTicketTypes() {
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/events/api/v1/ticket-types/${this.eventId}`
+        )
+        const today = new Date().toISOString().slice(0, 10)
+        this.ticketTypes = data.filter(
+          tt =>
+            tt.available_from <= today &&
+            tt.available_to >= today &&
+            (tt.max_tickets === 0 || tt.sold < tt.max_tickets)
+        )
+        for (const tt of this.ticketTypes) {
+          this.itemQuantities[tt.id] = 0
+          this.attendeeFields[tt.id] = []
+          this.copyDetailsToAll[tt.id] = false
+        }
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      }
     },
-
-    closeReceiveDialog() {
-      if (this.paymentDismissMsg) {
-        this.paymentDismissMsg()
-        this.paymentDismissMsg = null
+    addToBasket(tt, qty) {
+      if (qty <= 0) return
+      const existing = this.basketItems.find(
+        item => item.ticketTypeId === tt.id
+      )
+      if (existing) {
+        existing.quantity = qty
+      } else {
+        this.basketItems.push({ticketTypeId: tt.id, quantity: qty})
       }
-      if (this.paymentWebsocket) {
-        this.paymentWebsocket.close()
-        this.paymentWebsocket = null
+      this.itemQuantities[tt.id] = qty
+      this.rebuildBasket()
+    },
+    removeFromBasket(ttId) {
+      this.basketItems = this.basketItems.filter(
+        item => item.ticketTypeId !== ttId
+      )
+      this.itemQuantities[ttId] = 0
+      this.attendeeFields[ttId] = []
+      this.rebuildBasket()
+    },
+    updateQuantity(ttId, qty) {
+      if (qty <= 0) {
+        this.removeFromBasket(ttId)
+        return
       }
-      this.paymentReq = null
-      this.receive = {
-        show: false,
-        status: 'pending',
-        paymentReq: null,
-        isFiat: false
+      const existing = this.basketItems.find(
+        item => item.ticketTypeId === ttId
+      )
+      if (existing) {
+        existing.quantity = qty
+      } else {
+        this.basketItems.push({ticketTypeId: ttId, quantity: qty})
       }
+      this.rebuildBasket()
+    },
+    expandAttendeeFor(ttId) {
+      const item = this.basketItems.find(i => i.ticketTypeId === ttId)
+      if (!item) return
+      const current = this.attendeeFields[ttId] || []
+      while (current.length < item.quantity) {
+        current.push({name: '', email: ''})
+      }
+      while (current.length > item.quantity) {
+        current.pop()
+      }
+      this.attendeeFields[ttId] = current
+    },
+    updateAttendeeName(ttId, idx, val) {
+      if (!this.attendeeFields[ttId]) return
+      this.attendeeFields[ttId][idx].name = val
+      if (this.copyDetailsToAll[ttId]) {
+        for (const a of this.attendeeFields[ttId]) {
+          a.name = val
+        }
+      }
+    },
+    updateAttendeeEmail(ttId, idx, val) {
+      if (!this.attendeeFields[ttId]) return
+      this.attendeeFields[ttId][idx].email = val
+      if (this.copyDetailsToAll[ttId]) {
+        for (const a of this.attendeeFields[ttId]) {
+          a.email = val
+        }
+      }
+    },
+    onCopyDetails(ttId) {
+      if (!this.copyDetailsToAll[ttId]) return
+      const attendees = this.attendeeFields[ttId] || []
+      if (attendees.length === 0) return
+      const first = attendees[0]
+      for (let i = 1; i < attendees.length; i++) {
+        attendees[i].name = first.name
+        attendees[i].email = first.email
+      }
+    },
+    rebuildBasket() {
+      this.basketItems = this.basketItems.filter(
+        item => item.quantity > 0
+      )
+      if (this.basketItems.length === 0) {
+        this.discountBreakdown = []
+        this.basketTotal = 0
+        return
+      }
+      let subtotal = 0
+      for (const bi of this.basketItems) {
+        const tt = this.ticketTypes.find(t => t.id === bi.ticketTypeId)
+        if (tt) {
+          subtotal += tt.price * bi.quantity
+        }
+      }
+      this.basketTotal = subtotal
+      this.discountBreakdown = []
     },
     nameValidation(val) {
       const regex = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g
@@ -165,120 +209,70 @@ window.PageEventsDisplay = {
       const regex = /^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$/
       return regex.test(val) || this.$t('events.email_validation')
     },
-    paymentSuccess(paymentHash) {
-      if (this.paymentDismissMsg) {
-        this.paymentDismissMsg()
-        this.paymentDismissMsg = null
-      }
-      this.paymentReq = null
-      this.formDialog.data.name = ''
-      this.formDialog.data.email = ''
-      this.formDialog.data.refund = ''
-      this.formDialog.data.nostr_identifier = ''
-      this.formDialog.data.ticket_wave_id =
-        this.activeTicketWaves.length === 1
-          ? this.activeTicketWaves[0].id
-          : null
-      this.formDialog.data.payment_method = 'lightning'
-      Quasar.Notify.create({
-        type: 'positive',
-        message: this.$t('events.payment_sent'),
-        icon: null
-      })
-      this.receive = {
-        show: false,
-        status: 'complete',
-        paymentReq: null,
-        isFiat: false
-      }
-      this.ticketLink = {
-        show: true,
-        data: {
-          link: `/events/ticket/${paymentHash}`
-        }
-      }
-      window.open(`/events/ticket/${paymentHash}`, '_blank', 'noopener')
-    },
-    async createInvoice() {
+    async checkout() {
+      if (this.checkoutLoading || !this.canCheckout) return
+      this.checkoutLoading = true
       try {
+        const items = this.basketItems.map(bi => ({
+          ticket_type_id: bi.ticketTypeId,
+          quantity: bi.quantity
+        }))
+        const primaryItem = this.basketItems[0]
+        const primaryAttendees =
+          this.attendeeFields[primaryItem.ticketTypeId] || []
+        const primary = primaryAttendees[0] || {name: '', email: ''}
+        const promo_codes = this.promoCodeInput
+          .split(',')
+          .map(c => c.trim().toUpperCase())
+          .filter(c => c.length > 0)
+        const refundAddr = (this.event?.extra?.conditional)
+          ? ''
+          : undefined
+
+        const body = {
+          name: primary.name,
+          email: primary.email,
+          items,
+          promo_codes,
+          payment_method: null,
+          fiat_provider: null,
+          nostr_identifier: null,
+          refund_address: refundAddr || null
+        }
+
         const {data} = await LNbits.api.request(
           'POST',
-          `/events/api/v1/tickets/${this.eventId}`,
+          `/events/api/v1/baskets/${this.eventId}`,
           null,
-          {
-            name: this.formDialog.data.name,
-            email: this.formDialog.data.email,
-            ticket_wave_id: this.formDialog.data.ticket_wave_id || null,
-            promo_code: this.formDialog.data.promo_code || null,
-            refund_address: this.formDialog.data.refund || null,
-            nostr_identifier: this.formDialog.data.nostr_identifier || null,
-            payment_method: this.showPaymentMethodSelector
-              ? this.formDialog.data.payment_method
-              : 'lightning'
-          }
+          body
         )
-        if (data.satspay_charge_url) {
-          window.location.href = data.satspay_charge_url
+
+        if (data.payment_request?.satspay_charge_url) {
+          window.location.href = data.payment_request.satspay_charge_url
           return
         }
 
-        const isFiat = Boolean(data.is_fiat)
-        this.paymentReq = isFiat
-          ? data.fiat_payment_request || null
-          : data.payment_request
-        this.paymentHash = data.payment_hash
-
-        this.paymentDismissMsg = Quasar.Notify.create({
-          timeout: 0,
-          message: this.$t('events.waiting_for_payment')
-        })
-        this.receive = {
-          show: true,
-          status: 'pending',
-          paymentReq: this.paymentReq,
-          isFiat
+        const firstTicket = data.tickets?.[0]
+        if (data.basket && data.totals?.total === 0 && firstTicket) {
+          this.ticketLink.show = true
+          this.ticketLink.data.link = `/events/ticket/${firstTicket.id}`
+        } else if (firstTicket) {
+          this.ticketLink.show = true
+          this.ticketLink.data.link = `/events/ticket/${firstTicket.id}`
         }
-        if (isFiat && this.paymentReq) {
-          window.open(this.paymentReq, '_blank', 'noopener')
-        }
-        this.paymentWatcher(this.paymentHash)
       } catch (error) {
         LNbits.utils.notifyApiError(error)
-      }
-    },
-    paymentWatcher(paymentHash) {
-      if (this.paymentWebsocket) {
-        this.paymentWebsocket.close()
-      }
-
-      const url = new URL(window.location)
-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-      url.pathname = `/events/api/v1/tickets/ws/${paymentHash}`
-      url.search = ''
-      url.hash = ''
-
-      const ws = new WebSocket(url.toString())
-      this.paymentWebsocket = ws
-
-      ws.onmessage = event => {
-        const data = JSON.parse(event.data)
-        if (data.paid === true) {
-          this.paymentSuccess(paymentHash)
-          ws.close()
-        }
-      }
-      ws.onerror = error => {
-        console.error('WebSocket error:', error)
-      }
-      ws.onclose = () => {
-        if (this.paymentWebsocket !== ws) return
-        this.paymentWebsocket = null
-        if (this.receive.show) {
-          setTimeout(() => {
-            if (this.receive.show) this.paymentWatcher(paymentHash)
-          }, 3000)
-        }
+      } finally {
+        this.checkoutLoading = false
       }
     }
   }
+})
+
+app.config.globalProperties.utils = {
+  copyText(text) {
+    navigator.clipboard.writeText(text)
+  }
 }
+
+app.mount('#page-events-display')

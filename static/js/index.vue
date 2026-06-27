@@ -1,3 +1,4 @@
+# page-events
 <template id="page-events">
   <div class="row q-col-gutter-md">
     <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
@@ -109,10 +110,11 @@
               <q-tr v-show="props.expand" :props="props">
                 <q-td colspan="100%">
                   <div class="q-pa-md">
+
                     <div class="row items-center q-mb-md">
                       <div
                         class="text-subtitle1"
-                        v-text="$t('events.ticket_waves')"
+                        v-text="$t('events.ticket_types')"
                       ></div>
                       <q-btn
                         round
@@ -121,29 +123,45 @@
                         color="primary"
                         icon="add"
                         class="q-ml-sm"
-                        @click="openTicketWaveDialog(props.row)"
+                        @click="openTicketTypeDialog(props.row.id)"
                       ></q-btn>
+                      <q-btn
+                        flat
+                        dense
+                        size="xs"
+                        icon="refresh"
+                        color="grey"
+                        class="q-ml-xs"
+                        @click="loadTicketTypes(props.row.id)"
+                      >
+                        <q-tooltip>
+                          <span v-text="$t('events.refresh_ticket_types')"></span>
+                        </q-tooltip>
+                      </q-btn>
                     </div>
                     <div class="column q-mb-lg">
-                      <div class="column">
-                        <div
-                          v-for="(wave, index) in props.row.extra.ticket_waves"
-                          :key="wave.id || index"
-                          class="q-mb-sm"
+                      <div
+                        v-if="!ticketTypesByEvent[props.row.id] || ticketTypesByEvent[props.row.id].length === 0"
+                        class="text-caption"
+                        v-text="$t('events.no_ticket_types')"
+                      ></div>
+                      <div
+                        v-for="tt in (ticketTypesByEvent[props.row.id] || [])"
+                        :key="tt.id"
+                        class="q-mb-sm"
+                      >
+                        <q-chip
+                          square
+                          clickable
+                          class="q-py-xs"
+                          style="height: auto"
+                          @click="openTicketTypeDialog(props.row.id, tt)"
                         >
-                          <q-chip
-                            square
-                            clickable
-                            class="q-py-xs"
-                            style="height: auto"
-                            @click="openTicketWaveDialog(props.row, wave)"
-                          >
-                            <span
-                              style="white-space: normal; line-height: 1.3"
-                              v-text="waveChipLabel(props.row, wave)"
-                            ></span>
-                          </q-chip>
-                        </div>
+                          <span
+                            style="white-space: normal; line-height: 1.3"
+                            v-text="ticketTypeChipLabel(tt)"
+                          ></span>
+                        </q-chip>
                       </div>
                     </div>
 
@@ -165,7 +183,7 @@
                     <div class="column">
                       <div
                         v-if="
-                          props.row.extra.promo_codes.filter(
+                          (props.row.extra.promo_codes || []).filter(
                             code => code.active
                           ).length == 0
                         "
@@ -176,7 +194,7 @@
                         <div
                           v-for="(
                             code, index
-                          ) in props.row.extra.promo_codes.filter(
+                          ) in (props.row.extra.promo_codes || []).filter(
                             code => code.active
                           )"
                           :key="index"
@@ -189,11 +207,35 @@
                           >
                             <span
                               v-text="
-                                `${code.code.toUpperCase()} - ${code.discount_percent}%`
+                                `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? code.discount_fixed + ' sats' : ''}`
                               "
                             ></span>
                           </q-chip>
                         </div>
+                      </div>
+                    </div>
+
+                    <q-separator class="q-my-md"></q-separator>
+                    <div class="text-subtitle1 q-mb-sm" v-text="$t('events.bulk_actions')"></div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-auto">
+                        <q-btn
+                          unelevated
+                          dense
+                          color="primary"
+                          :label="$t('events.resend_all_emails')"
+                          :loading="resendingAllEmailsFor.includes(props.row.id)"
+                          @click="resendAllTicketEmails(props.row.id)"
+                        ></q-btn>
+                      </div>
+                      <div class="col-auto">
+                        <q-btn
+                          outline
+                          dense
+                          color="primary"
+                          :label="$t('events.email_all_attendees')"
+                          @click="openEmailAllDialog(props.row.id)"
+                        ></q-btn>
                       </div>
                     </div>
                   </div>
@@ -269,22 +311,6 @@
                   >
                     <q-tooltip>
                       <span v-text="$t('events.resend_ticket_email')"></span>
-                    </q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    v-if="props.row.extra?.onchain && !props.row.paid"
-                    flat
-                    dense
-                    size="xs"
-                    @click="confirmOnchainTicket(props.row)"
-                    icon="currency_bitcoin"
-                    color="orange"
-                    class="q-ml-xs"
-                  >
-                    <q-tooltip>
-                      <span
-                        v-text="$t('events.confirm_onchain_payment')"
-                      ></span>
                     </q-tooltip>
                   </q-btn>
                 </q-td>
@@ -397,6 +423,14 @@
             :label="$t('events.image_url_label')"
             :hint="$t('events.image_url_hint')"
           ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="formDialog.data.admin_email"
+            type="email"
+            :label="$t('events.admin_email_label')"
+            :hint="$t('events.admin_email_hint')"
+          ></q-input>
           <div class="row q-mt-lg">
             <div class="col-4" v-text="$t('events.event_begins')"></div>
             <div class="col-8">
@@ -420,36 +454,14 @@
             </div>
           </div>
           <q-separator class="q-my-md"></q-separator>
-          <div
-            class="text-subtitle1 q-mt-lg q-mb-md"
-            v-text="$t('events.primary_wave_hint')"
-          ></div>
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="primaryTicketWave().title"
-                type="text"
-                :label="$t('events.wave_title_label')"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="primaryTicketWave().opening_date"
-                type="date"
-                :label="$t('events.opening_date_label')"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
+          <div class="row">
+            <div class="col-4" v-text="$t('events.closing_date_label')"></div>
+            <div class="col-8">
               <q-input
                 filled
                 dense
                 v-model.trim="formDialog.data.closing_date"
                 type="date"
-                :label="$t('events.closing_date_label')"
               ></q-input>
             </div>
           </div>
@@ -464,67 +476,6 @@
                 :options="currencies"
               ></q-select>
             </div>
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.number="formDialog.data.amount_tickets"
-                type="number"
-                :label="$t('events.amount_tickets_label')"
-              ></q-input>
-            </div>
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.number="formDialog.data.price_per_ticket"
-                type="number"
-                :label="
-                  $t('events.price_label', {currency: formDialog.data.currency})
-                "
-                :step="formDialog.data.currency != 'sats' ? '0.01' : '1'"
-                :mask="formDialog.data.currency != 'sats' ? '#.##' : '#'"
-                fill-mask="0"
-                reverse-fill-mask
-                :disable="formDialog.data.currency == null"
-              ></q-input>
-            </div>
-          </div>
-          <q-toggle
-            v-model="primaryTicketWave().use_ticket_image"
-            :label="$t('events.use_ticket_image')"
-            left-label
-          ></q-toggle>
-          <div
-            v-if="primaryTicketWave().use_ticket_image"
-            class="row items-center q-col-gutter-sm q-mb-sm"
-          >
-            <div class="col-auto">
-              <q-btn
-                unelevated
-                color="primary"
-                type="a"
-                :href="templateDownloadUrl()"
-                download="ticket.jpg"
-              >
-                <span v-text="$t('events.download_template')"></span>
-                <q-tooltip>400/733 jpg</q-tooltip>
-              </q-btn>
-            </div>
-            <div class="col-auto">
-              <q-btn
-                outline
-                color="primary"
-                :loading="isUploadingTicketTemplate"
-                @click="triggerTicketImageUpload('primary')"
-                v-text="$t('events.replace_template')"
-              ></q-btn>
-            </div>
-            <div
-              v-if="primaryTicketWave().ticket_image_id"
-              class="col-12 text-caption"
-              v-text="$t('events.custom_template_uploaded')"
-            ></div>
           </div>
           <q-toggle
             v-model="formDialog.data.allow_fiat"
@@ -630,54 +581,6 @@
             </div>
           </q-expansion-item>
 
-          <q-expansion-item
-            group="advanced"
-            icon="view_in_ar"
-            :label="$t('events.onchain_payments')"
-          >
-            <div class="q-mt-lg">
-              <div
-                class="text-caption q-mb-md"
-                v-text="$t('events.onchain_desc')"
-              ></div>
-              <q-toggle
-                v-model="formDialog.data.extra.onchain_enabled"
-                :label="$t('events.accept_onchain')"
-                left-label
-                @update:model-value="val => val && loadOnchainWallets()"
-              ></q-toggle>
-              <q-select
-                v-if="formDialog.data.extra.onchain_enabled"
-                filled
-                dense
-                class="q-mt-md"
-                v-model="formDialog.data.extra.onchain_wallet_id"
-                :label="$t('events.watchonly_wallet')"
-                :options="
-                  onchainWallets.map(w => ({
-                    label: w.title || w.id,
-                    value: w.id
-                  }))
-                "
-                emit-value
-                map-options
-                :hint="$t('events.watchonly_wallet_hint')"
-              ></q-select>
-              <div v-if="formDialog.data.extra.onchain_enabled" class="q-mt-md">
-                <q-toggle
-                  v-model="formDialog.data.extra.onchain_zeroconf"
-                  :label="$t('events.onchain_zeroconf')"
-                  left-label
-                ></q-toggle>
-                <q-toggle
-                  v-model="formDialog.data.extra.onchain_fasttrack"
-                  :label="$t('events.onchain_fasttrack')"
-                  left-label
-                ></q-toggle>
-              </div>
-            </div>
-          </q-expansion-item>
-
           <div class="row q-mt-lg">
             <q-btn
               v-if="formDialog.data.id"
@@ -695,12 +598,8 @@
                 formDialog.data.name == null ||
                 formDialog.data.info == null ||
                 formDialog.data.closing_date == null ||
-                primaryTicketWave().title == null ||
-                primaryTicketWave().opening_date == null ||
                 formDialog.data.event_start_date == null ||
-                formDialog.data.event_end_date == null ||
-                formDialog.data.amount_tickets == null ||
-                formDialog.data.price_per_ticket == null
+                formDialog.data.event_end_date == null
               "
               type="submit"
               v-text="$t('events.create_event')"
@@ -710,6 +609,137 @@
               flat
               color="grey"
               class="q-ml-auto"
+              v-text="$t('cancel')"
+            ></q-btn>
+          </div>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="ticketTypeDialog.show" position="top">
+      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+        <q-form @submit="saveTicketType" class="q-gutter-md">
+          <div
+            class="text-subtitle1"
+            v-text="
+              ticketTypeDialog.isEdit
+                ? $t('events.edit_ticket_type')
+                : $t('events.add_ticket_type')
+            "
+          ></div>
+          <q-input
+            filled
+            dense
+            v-model.trim="ticketTypeDialog.data.name"
+            type="text"
+            :label="$t('events.tt_name_label')"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="ticketTypeDialog.data.description"
+            type="textarea"
+            :label="$t('events.tt_description_label')"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="ticketTypeDialog.data.image_url"
+            type="url"
+            :label="$t('events.tt_image_url_label')"
+          ></q-input>
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                filled
+                dense
+                v-model.number="ticketTypeDialog.data.price"
+                type="number"
+                :label="$t('events.price_label', {currency: ticketTypeDialog.data.currency})"
+                min="0"
+              ></q-input>
+            </div>
+            <div class="col">
+              <q-select
+                filled
+                dense
+                v-model="ticketTypeDialog.data.currency"
+                :label="$t('events.unit_label')"
+                :options="currencies"
+              ></q-select>
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                filled
+                dense
+                v-model.number="ticketTypeDialog.data.max_tickets"
+                type="number"
+                :label="$t('events.amount_tickets_label')"
+                min="0"
+                :hint="$t('events.max_tickets_hint')"
+              ></q-input>
+            </div>
+            <div class="col">
+              <q-input
+                filled
+                dense
+                v-model.number="ticketTypeDialog.data.sort_order"
+                type="number"
+                :label="$t('events.sort_order_label')"
+                min="0"
+              ></q-input>
+            </div>
+          </div>
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                filled
+                dense
+                v-model.trim="ticketTypeDialog.data.available_from"
+                type="date"
+                :label="$t('events.available_from_label')"
+              ></q-input>
+            </div>
+            <div class="col">
+              <q-input
+                filled
+                dense
+                v-model.trim="ticketTypeDialog.data.available_to"
+                type="date"
+                :label="$t('events.available_to_label')"
+              ></q-input>
+            </div>
+          </div>
+          <q-toggle
+            v-model="ticketTypeDialog.data.allow_fiat"
+            :label="$t('events.allow_fiat_checkout')"
+            left-label
+          ></q-toggle>
+          <q-select
+            v-if="ticketTypeDialog.data.allow_fiat"
+            filled
+            dense
+            v-model="ticketTypeDialog.data.fiat_currency"
+            :label="$t('events.fiat_checkout_currency')"
+            :options="
+              currencies.filter(
+                c => !['sat', 'sats'].includes((c || '').toLowerCase())
+              )
+            "
+          ></q-select>
+          <div class="row q-mt-lg">
+            <q-btn unelevated color="primary" type="submit">{{
+              ticketTypeDialog.isEdit
+                ? $t('events.update_ticket_type')
+                : $t('events.save_ticket_type')
+            }}</q-btn>
+            <q-btn
+              flat
+              color="grey"
+              class="q-ml-auto"
+              @click="resetTicketTypeDialog"
               v-text="$t('cancel')"
             ></q-btn>
           </div>
@@ -732,49 +762,37 @@
           <div
             v-for="(code, index) in promoCodesDialog.data.extra.promo_codes"
             :key="index"
-            class="row q-col-gutter-sm q-mt-md"
           >
-            <q-input
-              class="col-8"
-              filled
-              dense
-              v-model.trim="promoCodesDialog.data.extra.promo_codes[index].code"
-              type="text"
-              :label="$t('events.promo_code_label')"
-            >
-              <template v-slot:before>
-                <q-checkbox
-                  left-label
-                  v-model="
-                    promoCodesDialog.data.extra.promo_codes[index].active
-                  "
-                  checked-icon="radio_button_checked"
-                  unchecked-icon="radio_button_unchecked"
-                ></q-checkbox>
-                <q-tooltip>
-                  <span
-                    v-text="
+            <div class="row q-col-gutter-sm q-mt-md">
+              <q-input
+                class="col-8"
+                filled
+                dense
+                v-model.trim="promoCodesDialog.data.extra.promo_codes[index].code"
+                type="text"
+                :label="$t('events.promo_code_label')"
+              >
+                <template v-slot:before>
+                  <q-checkbox
+                    left-label
+                    v-model="
                       promoCodesDialog.data.extra.promo_codes[index].active
-                        ? $t('events.active')
-                        : $t('events.inactive')
                     "
-                  ></span>
-                </q-tooltip>
-              </template>
-            </q-input>
-            <q-input
-              class="col-4"
-              filled
-              dense
-              v-model.number="
-                promoCodesDialog.data.extra.promo_codes[index].discount_percent
-              "
-              type="number"
-              :label="$t('events.discount_label')"
-              min="0"
-              max="100"
-            >
-              <template v-slot:after>
+                    checked-icon="radio_button_checked"
+                    unchecked-icon="radio_button_unchecked"
+                  ></q-checkbox>
+                  <q-tooltip>
+                    <span
+                      v-text="
+                        promoCodesDialog.data.extra.promo_codes[index].active
+                          ? $t('events.active')
+                          : $t('events.inactive')
+                      "
+                    ></span>
+                  </q-tooltip>
+                </template>
+              </q-input>
+              <div class="col-4 row items-center">
                 <q-btn
                   round
                   dense
@@ -784,8 +802,67 @@
                     promoCodesDialog.data.extra.promo_codes.splice(index, 1)
                   "
                 ></q-btn>
-              </template>
-            </q-input>
+              </div>
+            </div>
+
+            <div class="row q-col-gutter-sm q-mt-sm">
+              <div class="col-6">
+                <q-toggle
+                  v-model="promoCodesDialog.data.extra.promo_codes[index].combinable"
+                  :label="$t('events.promo_combinable')"
+                  left-label
+                ></q-toggle>
+              </div>
+              <div class="col-6">
+                <q-input
+                  filled
+                  dense
+                  v-model.number="promoCodesDialog.data.extra.promo_codes[index].max_uses"
+                  type="number"
+                  :label="$t('events.promo_max_uses')"
+                  :hint="$t('events.promo_max_uses_hint')"
+                  min="0"
+                ></q-input>
+              </div>
+            </div>
+
+            <q-separator class="q-my-sm" spaced></q-separator>
+            <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>
+            <div class="row q-col-gutter-sm">
+              <div class="col-6">
+                <q-input
+                  filled
+                  dense
+                  v-model.number="
+                    promoCodesDialog.data.extra.promo_codes[index].discount_percent
+                  "
+                  type="number"
+                  :label="$t('events.discount_percent_label')"
+                  min="0"
+                  max="100"
+                >
+                  <template v-slot:after>
+                    <span>%</span>
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-6">
+                <q-input
+                  filled
+                  dense
+                  v-model.number="
+                    promoCodesDialog.data.extra.promo_codes[index].discount_fixed
+                  "
+                  type="number"
+                  :label="$t('events.discount_fixed_label')"
+                  min="0"
+                >
+                  <template v-slot:after>
+                    <span>sats</span>
+                  </template>
+                </q-input>
+              </div>
+            </div>
           </div>
 
           <div class="col-12 q-mt-md">
@@ -814,167 +891,48 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="ticketWaveDialog.show" position="top">
+    <q-dialog v-model="emailAllDialog.show" position="top">
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-        <q-form @submit="saveTicketWave" class="q-gutter-md">
+        <q-form @submit="sendEmailToAttendees" class="q-gutter-md">
           <div
             class="text-subtitle1"
-            v-text="
-              ticketWaveDialog.editingWaveId
-                ? $t('events.edit_ticket_wave')
-                : $t('events.add_ticket_wave')
-            "
+            v-text="$t('events.email_all_attendees_title')"
           ></div>
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="ticketWaveDialog.data.title"
-                type="text"
-                :label="$t('events.wave_title_label')"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="ticketWaveDialog.data.opening_date"
-                type="date"
-                :label="$t('events.opening_date_label')"
-              ></q-input>
-            </div>
-            <div class="col-12 col-md-4">
-              <q-input
-                filled
-                dense
-                v-model.trim="ticketWaveDialog.data.closing_date"
-                type="date"
-                :label="$t('events.closing_date_label')"
-              ></q-input>
-            </div>
-          </div>
-          <div class="row q-col-gutter-sm">
-            <div class="col">
-              <q-select
-                filled
-                dense
-                v-model="ticketWaveDialog.data.currency"
-                type="text"
-                :label="$t('events.unit_label')"
-                :options="currencies"
-              ></q-select>
-            </div>
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.number="ticketWaveDialog.data.amount_tickets"
-                type="number"
-                :label="$t('events.amount_tickets_label')"
-              ></q-input>
-            </div>
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.number="ticketWaveDialog.data.price_per_ticket"
-                type="number"
-                :label="
-                  $t('events.price_label', {
-                    currency: ticketWaveDialog.data.currency
-                  })
-                "
-                :step="ticketWaveDialog.data.currency != 'sats' ? '0.01' : '1'"
-                :mask="ticketWaveDialog.data.currency != 'sats' ? '#.##' : '#'"
-                fill-mask="0"
-                reverse-fill-mask
-                :disable="ticketWaveDialog.data.currency == null"
-              ></q-input>
-            </div>
-          </div>
-          <q-toggle
-            v-model="ticketWaveDialog.data.use_ticket_image"
-            :label="$t('events.use_ticket_image')"
-            left-label
-          ></q-toggle>
-          <div
-            v-if="ticketWaveDialog.data.use_ticket_image"
-            class="row items-center q-col-gutter-sm q-mb-sm"
-          >
-            <div class="col-auto">
-              <q-btn
-                unelevated
-                color="primary"
-                type="a"
-                :href="templateDownloadUrl()"
-                download="ticket.jpg"
-              >
-                <span v-text="$t('events.download_template')"></span>
-                <q-tooltip>400/733 jpg</q-tooltip>
-              </q-btn>
-            </div>
-            <div class="col-auto">
-              <q-btn
-                outline
-                color="primary"
-                :loading="isUploadingTicketTemplate"
-                @click="triggerTicketImageUpload('dialog')"
-                v-text="$t('events.replace_template')"
-              ></q-btn>
-            </div>
-            <div
-              v-if="ticketWaveDialog.data.ticket_image_id"
-              class="col-12 text-caption"
-              v-text="$t('events.custom_template_uploaded')"
-            ></div>
-          </div>
-          <q-toggle
-            v-model="ticketWaveDialog.data.allow_fiat"
-            :label="$t('events.allow_fiat_checkout')"
-            left-label
-            :hint="$t('events.wave_allow_fiat_hint')"
-          ></q-toggle>
-          <q-select
-            v-if="
-              ticketWaveDialog.data.allow_fiat &&
-              ['sat', 'sats'].includes(
-                (ticketWaveDialog.data.currency || '').toLowerCase()
-              )
-            "
+          <q-input
             filled
             dense
-            v-model="ticketWaveDialog.data.fiat_currency"
-            :label="$t('events.fiat_checkout_currency')"
-            :options="
-              currencies.filter(
-                c => !['sat', 'sats'].includes((c || '').toLowerCase())
-              )
-            "
-          ></q-select>
+            v-model.trim="emailAllDialog.subject"
+            type="text"
+            :label="$t('events.email_subject_label')"
+            :rules="[val => !!val || $t('events.required')]"
+          ></q-input>
+          <q-input
+            filled
+            dense
+            v-model.trim="emailAllDialog.message"
+            type="textarea"
+            :label="$t('events.email_message_label')"
+            :rules="[val => !!val || $t('events.required')]"
+          ></q-input>
           <div class="row q-mt-lg">
-            <q-btn unelevated color="primary" type="submit">{{
-              ticketWaveDialog.editingWaveId
-                ? $t('events.update_ticket_wave')
-                : $t('events.save_ticket_wave')
-            }}</q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              :loading="emailAllDialog.loading"
+              v-text="$t('events.send')"
+            ></q-btn>
             <q-btn
               flat
               color="grey"
               class="q-ml-auto"
-              @click="resetTicketWaveDialog"
+              @click="resetEmailAllDialog"
               v-text="$t('cancel')"
             ></q-btn>
           </div>
         </q-form>
       </q-card>
     </q-dialog>
-    <input
-      ref="ticketImageUpload"
-      type="file"
-      accept="image/png,image/jpeg,image/webp"
-      style="display: none"
-      @change="handleTicketImageSelected"
-    />
+
   </div>
 </template>

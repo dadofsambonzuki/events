@@ -195,3 +195,97 @@ async def m008_add_fiat_currency(db):
         ALTER TABLE events.events
         ADD COLUMN fiat_currency TEXT NOT NULL DEFAULT 'GBP';
         """)
+
+
+async def m009_ticket_types_and_baskets(db):
+    await db.execute(
+        """
+        CREATE TABLE events.ticket_types (
+            id TEXT PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            image_url TEXT,
+            price REAL NOT NULL DEFAULT 0,
+            max_tickets INTEGER NOT NULL DEFAULT 0,
+            sold INTEGER NOT NULL DEFAULT 0,
+            available_from TEXT NOT NULL,
+            available_to TEXT NOT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            extra TEXT
+        );
+    """
+    )
+
+    await db.execute(
+        """
+        CREATE TABLE events.baskets (
+            id TEXT PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            wallet TEXT NOT NULL,
+            email TEXT NOT NULL,
+            name TEXT NOT NULL,
+            promo_codes TEXT,
+            payment_method TEXT,
+            fiat_provider TEXT,
+            nostr_identifier TEXT,
+            refund_address TEXT,
+            satspay_charge_id TEXT,
+            paid BOOLEAN NOT NULL DEFAULT FALSE,
+            time TIMESTAMP NOT NULL DEFAULT """
+        + db.timestamp_now
+        + """
+        );
+    """
+    )
+
+    await db.execute("ALTER TABLE events.events ADD COLUMN admin_email TEXT;")
+    await db.execute("ALTER TABLE events.ticket ADD COLUMN ticket_type_id TEXT;")
+    await db.execute("ALTER TABLE events.ticket ADD COLUMN basket_id TEXT;")
+
+    import json
+
+    events_rows = await db.fetchall("SELECT id, extra FROM events.events")
+    for row in events_rows:
+        event_id = row["id"]
+        extra_str = row["extra"]
+        if not extra_str:
+            continue
+        try:
+            extra = json.loads(extra_str)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        ticket_waves = extra.get("ticket_waves", []) or []
+        sort_order = 0
+        for wave in ticket_waves:
+            await db.execute(
+                """
+                INSERT INTO events.ticket_types (
+                    id, event_id, name, description,                     image_url, price, max_tickets, sold,
+                    available_from, available_to,
+                    sort_order, extra
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    wave.get("id", ""),
+                    event_id,
+                    wave.get("title", "General Admission"),
+                    "",
+                    wave.get("ticket_image_id"),
+                    wave.get("price_per_ticket", 0),
+                    wave.get("amount_tickets", 0),
+                    0,
+                    wave.get("opening_date", ""),
+                    wave.get("closing_date", ""),
+                    sort_order,
+                    "{}",
+                ),
+            )
+            sort_order += 1
+
+        extra.pop("ticket_waves", None)
+        await db.execute(
+            "UPDATE events.events SET extra = ? WHERE id = ?",
+            (json.dumps(extra), event_id),
+        )

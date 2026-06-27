@@ -22,3 +22,7 @@ events_generic_router.add_api_route(
 events_generic_router.add_api_route(
     "/register/{event_id}", methods=["GET"], endpoint=index_public
 )
+
+events_generic_router.add_api_route(
+    "/basket/{basket_id}", methods=["GET"], endpoint=index_public
+)

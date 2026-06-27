@@ -5,19 +5,28 @@ from lnbits.db import Database, Filters, Page
 from lnbits.helpers import urlsafe_short_hash
 
 from .models import (
+    Basket,
     CreateEvent,
     Event,
     Ticket,
     TicketExtra,
     TicketFilters,
-    sync_event_ticket_waves,
+    TicketType,
+    sync_event_from_ticket_types,
 )
 
 db = Database("ext_events")
 
 
 async def create_ticket(
-    payment_hash: str, wallet: str, event: str, name: str, email: str, extra: dict
+    payment_hash: str,
+    wallet: str,
+    event: str,
+    name: str,
+    email: str,
+    extra: dict,
+    ticket_type_id: str | None = None,
+    basket_id: str | None = None,
 ) -> Ticket:
     now = datetime.now(timezone.utc)
     ticket = Ticket(
@@ -30,6 +39,8 @@ async def create_ticket(
         paid=False,
         reg_timestamp=now,
         time=now,
+        ticket_type_id=ticket_type_id,
+        basket_id=basket_id,
         extra=TicketExtra(**extra) if extra else TicketExtra(),
     )
     await db.insert("events.ticket", ticket)
@@ -108,13 +119,11 @@ async def purge_unpaid_tickets(event_id: str) -> None:
 async def create_event(data: CreateEvent) -> Event:
     event_id = urlsafe_short_hash()
     event = Event(id=event_id, time=datetime.now(timezone.utc), **data.dict())
-    event = cast(Event, sync_event_ticket_waves(event))
     await db.insert("events.events", event)
     return event
 
 
 async def update_event(event: Event) -> Event:
-    event = cast(Event, sync_event_ticket_waves(event))
     await db.update("events.events", event)
     return event
 
@@ -125,7 +134,10 @@ async def get_event(event_id: str) -> Event | None:
         {"id": event_id},
         Event,
     )
-    return cast(Event, sync_event_ticket_waves(event)) if event else None
+    if event:
+        ticket_types = await get_ticket_types(event_id)
+        event = cast(Event, sync_event_from_ticket_types(event, ticket_types))
+    return event
 
 
 async def get_events(wallet_ids: str | list[str]) -> list[Event]:
@@ -136,7 +148,11 @@ async def get_events(wallet_ids: str | list[str]) -> list[Event]:
         f"SELECT * FROM events.events WHERE wallet IN ({q})",
         model=Event,
     )
-    return [cast(Event, sync_event_ticket_waves(event)) for event in events]
+    result = []
+    for event in events:
+        ticket_types = await get_ticket_types(event.id)
+        result.append(cast(Event, sync_event_from_ticket_types(event, ticket_types)))
+    return result
 
 
 async def delete_event(event_id: str) -> None:
@@ -147,5 +163,79 @@ async def get_event_tickets(event_id: str) -> list[Ticket]:
     return await db.fetchall(
         "SELECT * FROM events.ticket WHERE event = :event",
         {"event": event_id},
+        Ticket,
+    )
+
+
+async def get_ticket_types(event_id: str) -> list[TicketType]:
+    return await db.fetchall(
+        "SELECT * FROM events.ticket_types WHERE event_id = :event_id"
+        " ORDER BY sort_order ASC",
+        {"event_id": event_id},
+        TicketType,
+    )
+
+
+async def get_ticket_type(ticket_type_id: str) -> TicketType | None:
+    return await db.fetchone(
+        "SELECT * FROM events.ticket_types WHERE id = :id",
+        {"id": ticket_type_id},
+        TicketType,
+    )
+
+
+async def create_ticket_type(data: TicketType) -> TicketType:
+    await db.insert("events.ticket_types", data)
+    return data
+
+
+async def update_ticket_type(data: TicketType) -> TicketType:
+    await db.update("events.ticket_types", data)
+    return data
+
+
+async def delete_ticket_type(ticket_type_id: str) -> None:
+    await db.execute(
+        "DELETE FROM events.ticket_types WHERE id = :id", {"id": ticket_type_id}
+    )
+
+
+async def delete_event_ticket_types(event_id: str) -> None:
+    await db.execute(
+        "DELETE FROM events.ticket_types WHERE event_id = :event_id",
+        {"event_id": event_id},
+    )
+
+
+async def create_basket(data: Basket) -> Basket:
+    await db.insert("events.baskets", data)
+    return data
+
+
+async def get_basket(basket_id: str) -> Basket | None:
+    return await db.fetchone(
+        "SELECT * FROM events.baskets WHERE id = :id",
+        {"id": basket_id},
+        Basket,
+    )
+
+
+async def update_basket(basket: Basket) -> Basket:
+    await db.update("events.baskets", basket)
+    return basket
+
+
+async def get_event_baskets(event_id: str) -> list[Basket]:
+    return await db.fetchall(
+        "SELECT * FROM events.baskets WHERE event_id = :event_id",
+        {"event_id": event_id},
+        Basket,
+    )
+
+
+async def get_basket_tickets(basket_id: str) -> list[Ticket]:
+    return await db.fetchall(
+        "SELECT * FROM events.ticket WHERE basket_id = :basket_id",
+        {"basket_id": basket_id},
         Ticket,
     )
