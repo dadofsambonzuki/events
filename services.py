@@ -211,18 +211,24 @@ async def create_basket_with_charge(
         webhook_url = f"{internal_base}/events/api/v1/baskets/{basket_id}/satspay-webhook"
         complete_url = f"{base_url}/events/basket/{basket_id}"
 
+        charge_data = {
+            "description": f"Tickets for {event.name}",
+            "name": data.name or "",
+            "webhook": webhook_url,
+            "completelink": complete_url,
+            "completelinktext": "View your tickets",
+            "time": 1440,
+            "lnbitswallet": event.wallet,
+        }
+        if event.currency and event.currency.lower() != "sat" and event.currency.lower() != "sats":
+            charge_data["currency"] = event.currency.lower()
+            charge_data["currency_amount"] = float(totals.total)
+        else:
+            charge_data["amount"] = totals.total
+
         charge = await create_satspay_charge(
             api_key=wallet_inkey,
-            data={
-                "amount": totals.total,
-                "description": f"Tickets for {event.name}",
-                "name": data.name or "",
-                "webhook": webhook_url,
-                "completelink": complete_url,
-                "completelinktext": "View your tickets",
-                "time": 1440,
-                "lnbitswallet": event.wallet,
-            },
+            data=charge_data,
         )
         basket.satspay_charge_id = charge["id"]
 
