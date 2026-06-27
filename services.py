@@ -206,9 +206,9 @@ async def create_basket_with_charge(
     charge = None
     tickets: list[Ticket] = []
 
-    if totals.total > 0 and data.payment_method == "onchain":
+    if totals.total > 0:
         internal_base = f"http://{settings.host}:{settings.port}"
-        webhook_url = f"{internal_base}/events/api/v1/baskets/webhook"
+        webhook_url = f"{internal_base}/events/api/v1/baskets/{basket_id}/satspay-webhook"
         complete_url = f"{base_url}/events/basket/{basket_id}"
 
         charge = await create_satspay_charge(
@@ -216,11 +216,12 @@ async def create_basket_with_charge(
             data={
                 "amount": totals.total,
                 "description": f"Tickets for {event.name}",
-                "name": data.name,
+                "name": data.name or "",
                 "webhook": webhook_url,
                 "completelink": complete_url,
                 "completelinktext": "View your tickets",
                 "time": 1440,
+                "lnbitswallet": event.wallet,
             },
         )
         basket.satspay_charge_id = charge["id"]

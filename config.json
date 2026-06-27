@@ -58,5 +58,6 @@
   "paid_features": "",
   "tags": ["Fun & Social", "Ticketing"],
   "donate": "",
-  "hidden": false
+  "hidden": false,
+  "dependencies": ["satspay"]
 }

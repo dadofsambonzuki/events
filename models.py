@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from uuid import uuid4
 
 from fastapi import Query
@@ -266,7 +266,7 @@ class Basket(BaseModel):
     refund_address: str | None = None
     satspay_charge_id: str | None = None
     paid: bool = False
-    time: datetime
+    time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class BasketResponse(BaseModel):
