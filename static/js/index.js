@@ -324,6 +324,7 @@ window.PageEvents = {
         .then(response => {
           this.events = response.data
           this.checkCanceledEvents()
+          this.events.forEach(ev => this.loadTicketTypes(ev.id))
         })
     },
     sendEventData() {
