@@ -739,11 +739,6 @@
               ></q-input>
             </div>
           </div>
-          <q-toggle
-            v-model="ticketTypeDialog.data.allow_fiat"
-            :label="$t('events.allow_fiat_checkout')"
-            left-label
-          ></q-toggle>
           <div class="row q-mt-lg">
             <q-btn unelevated color="primary" type="submit">{{
               ticketTypeDialog.isEdit

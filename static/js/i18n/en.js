@@ -37,12 +37,6 @@ window.i18n.global.mergeLocaleMessage('en', {
     download_template: 'Download template',
     replace_template: 'Replace',
     custom_template_uploaded: 'Custom ticket template uploaded.',
-    allow_fiat_checkout: 'Allow fiat checkout',
-    allow_fiat_hint:
-      'Lets attendees pay through a configured fiat provider using the event currency.',
-    wave_allow_fiat_hint:
-      'Lets attendees pay through a configured fiat provider using this wave currency.',
-    fiat_checkout_currency: 'Fiat checkout currency',
     payment_methods: 'Payment Methods',
     lightning: 'Lightning',
     fiat: 'Fiat',

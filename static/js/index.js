@@ -131,13 +131,12 @@ window.PageEvents = {
            image_url: null,
            price: 0,
            max_tickets: 0,
-           available_from: '',
-           available_to: '',
-           allow_fiat: false,
-           sort_order: 0
-         }
-       },
-      ticketTypesByEvent: {},
+            available_from: '',
+            available_to: '',
+            sort_order: 0
+          }
+        },
+       ticketTypesByEvent: {},
       promoCodesDialog: {
         show: false,
         data: {
@@ -551,7 +550,6 @@ window.PageEvents = {
           max_tickets: tt?.max_tickets || 0,
           available_from: tt?.available_from || event.event_start_date || '',
           available_to: tt?.available_to || event.closing_date || '',
-          allow_fiat: isEdit ? Boolean(tt?.allow_fiat) : Boolean(event.allow_fiat),
           sort_order: tt?.sort_order || 0
         }
       }
@@ -571,7 +569,6 @@ window.PageEvents = {
           max_tickets: 0,
           available_from: '',
           available_to: '',
-          allow_fiat: false,
           sort_order: 0
         }
       }

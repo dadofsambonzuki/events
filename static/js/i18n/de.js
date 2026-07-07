@@ -39,12 +39,6 @@ window.i18n.global.mergeLocaleMessage('de', {
     download_template: 'Vorlage herunterladen',
     replace_template: 'Ersetzen',
     custom_template_uploaded: 'Benutzerdefinierte Ticket-Vorlage hochgeladen.',
-    allow_fiat_checkout: 'Fiat-Checkout erlauben',
-    allow_fiat_hint:
-      'Ermöglicht Teilnehmern, über einen konfigurierten Fiat-Anbieter mit der Veranstaltungswährung zu bezahlen.',
-    wave_allow_fiat_hint:
-      'Ermöglicht Teilnehmern, über einen konfigurierten Fiat-Anbieter mit der Wellenwährung zu bezahlen.',
-    fiat_checkout_currency: 'Fiat-Checkout-Währung',
     payment_methods: 'Zahlungsmethoden',
     lightning: 'Lightning',
     fiat: 'Fiat',

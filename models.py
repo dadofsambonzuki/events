@@ -51,7 +51,6 @@ class TicketType(BaseModel):
     sold: int = 0
     available_from: str
     available_to: str
-    allow_fiat: bool = False
     sort_order: int = 0
     extra: dict = Field(default_factory=dict)
 
@@ -305,7 +304,6 @@ def sync_event_from_ticket_types(
 
     event.amount_tickets = sum(tt.max_tickets for tt in ticket_types)
     event.price_per_ticket = ticket_types[0].price
-    event.allow_fiat = any(tt.allow_fiat for tt in ticket_types)
     event.closing_date = max(tt.available_to for tt in ticket_types)
 
     return event

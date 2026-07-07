@@ -113,7 +113,6 @@ async def api_create_event(
             max_tickets=data.amount_tickets,
             available_from=data.event_start_date,
             available_to=data.closing_date,
-            allow_fiat=data.allow_fiat,
         )
         await create_ticket_type(default_tt)
     return event

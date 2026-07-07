@@ -41,12 +41,6 @@ window.i18n.global.mergeLocaleMessage('es', {
     download_template: 'Descargar plantilla',
     replace_template: 'Reemplazar',
     custom_template_uploaded: 'Plantilla de entrada personalizada subida.',
-    allow_fiat_checkout: 'Permitir pago fiat',
-    allow_fiat_hint:
-      'Permite a los asistentes pagar mediante un proveedor fiat configurado usando la moneda del evento.',
-    wave_allow_fiat_hint:
-      'Permite a los asistentes pagar mediante un proveedor fiat configurado usando la moneda de esta oleada.',
-    fiat_checkout_currency: 'Moneda de pago fiat',
     payment_methods: 'Métodos de Pago',
     lightning: 'Lightning',
     fiat: 'Fiat',
