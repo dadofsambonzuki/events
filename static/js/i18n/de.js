@@ -164,7 +164,6 @@ window.i18n.global.mergeLocaleMessage('de', {
     not_checked_in: 'Nicht eingecheckt',
     print: 'Drucken',
     ticket_types: 'Ticket-Typen',
-    refresh_ticket_types: 'Aktualisieren',
     no_ticket_types: 'Keine Ticket-Typen konfiguriert.',
     no_ticket_types_available: 'Keine Ticket-Typen für diese Veranstaltung verfügbar.',
     tt_chip: '{name} - {price} {currency}',

@@ -157,7 +157,6 @@ window.i18n.global.mergeLocaleMessage('en', {
     not_checked_in: 'Not Checked In',
     print: 'Print',
     ticket_types: 'Ticket Types',
-    refresh_ticket_types: 'Refresh',
     no_ticket_types: 'No ticket types configured.',
     no_ticket_types_available: 'No ticket types available for this event.',
     tt_chip: '{name} - {price} {currency}',

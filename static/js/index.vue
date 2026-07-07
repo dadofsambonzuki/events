@@ -125,19 +125,6 @@
                         class="q-ml-sm"
                         @click="openTicketTypeDialog(props.row.id)"
                       ></q-btn>
-                      <q-btn
-                        flat
-                        dense
-                        size="xs"
-                        icon="refresh"
-                        color="grey"
-                        class="q-ml-xs"
-                        @click="loadTicketTypes(props.row.id)"
-                      >
-                        <q-tooltip>
-                          <span v-text="$t('events.refresh_ticket_types')"></span>
-                        </q-tooltip>
-                      </q-btn>
                     </div>
                     <div class="column q-mb-lg">
                       <div
@@ -145,11 +132,12 @@
                         class="text-caption"
                         v-text="$t('events.no_ticket_types')"
                       ></div>
-                      <div
-                        v-for="tt in (ticketTypesByEvent[props.row.id] || [])"
-                        :key="tt.id"
-                        class="q-mb-sm"
-                      >
+                      <div class="row q-gutter-sm">
+                        <div
+                          v-for="tt in (ticketTypesByEvent[props.row.id] || [])"
+                          :key="tt.id"
+                          class="col-auto"
+                        >
                         <q-chip
                           square
                           clickable
@@ -162,6 +150,7 @@
                             v-text="ticketTypeChipLabel(tt)"
                           ></span>
                         </q-chip>
+                      </div>
                       </div>
                     </div>
 
@@ -190,7 +179,7 @@
                         class="text-caption"
                         v-text="$t('events.no_active_promo_codes')"
                       ></div>
-                      <div class="row q-col-gutter-sm">
+                      <div class="row q-gutter-sm">
                         <div
                           v-for="(
                             code, index
@@ -198,14 +187,17 @@
                             code => code.active
                           )"
                           :key="index"
-                          class="col-auto q-mb-sm"
+                          class="col-auto"
                         >
                           <q-chip
                             square
                             clickable
+                            class="q-py-xs"
+                            style="height: auto"
                             @click="utils.copyText(code.code.toUpperCase())"
                           >
                             <span
+                              style="white-space: normal; line-height: 1.3"
                               v-text="
                                 `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? ` ${code.discount_fixed} ${props.row.currency === 'sat' ? 'sats' : props.row.currency}` : ''}`
                               "

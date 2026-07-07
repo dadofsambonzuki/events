@@ -164,7 +164,6 @@ window.i18n.global.mergeLocaleMessage('es', {
     not_checked_in: 'No registrado',
     print: 'Imprimir',
     ticket_types: 'Tipos de entrada',
-    refresh_ticket_types: 'Actualizar',
     no_ticket_types: 'No hay tipos de entrada configurados.',
     no_ticket_types_available: 'No hay tipos de entrada disponibles para este evento.',
     tt_chip: '{name} - {price} {currency}',
