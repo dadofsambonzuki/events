@@ -763,7 +763,7 @@
     </q-dialog>
 
     <q-dialog v-model="promoCodesDialog.show" position="top">
-      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card" style="max-width: 640px">
         <q-form @submit="savePromoCodes" class="q-gutter-md">
           <div
             class="text-subtitle1"
@@ -774,125 +774,134 @@
             v-text="$t('events.promo_codes_desc')"
           ></div>
 
-          <div
+          <q-card
             v-for="(code, index) in promoCodesDialog.data.extra.promo_codes"
             :key="index"
+            class="q-mb-md"
           >
-            <div class="row q-col-gutter-sm q-mt-md">
+            <q-card-section>
+              <div class="row items-center">
+                <div class="col">
+                  <div class="row items-center q-gutter-x-sm">
+                    <span class="text-h6 text-weight-medium">{{ code.code || $t('events.promo_code_label') }}</span>
+                    <q-badge
+                      :color="code.active ? 'positive' : 'grey'"
+                      :label="code.active ? $t('events.active') : $t('events.inactive')"
+                    ></q-badge>
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    round
+                    dense
+                    flat
+                    color="negative"
+                    icon="delete"
+                    @click="
+                      promoCodesDialog.data.extra.promo_codes.splice(index, 1)
+                    "
+                  ></q-btn>
+                </div>
+              </div>
+            </q-card-section>
+            <q-card-section class="q-pt-none">
               <q-input
-                class="col-8"
                 filled
                 dense
                 v-model.trim="promoCodesDialog.data.extra.promo_codes[index].code"
                 type="text"
                 :label="$t('events.promo_code_label')"
-              >
-                <template v-slot:before>
-                  <q-checkbox
-                    left-label
-                    v-model="
-                      promoCodesDialog.data.extra.promo_codes[index].active
-                    "
-                    checked-icon="radio_button_checked"
-                    unchecked-icon="radio_button_unchecked"
-                  ></q-checkbox>
-                  <q-tooltip>
-                    <span
-                      v-text="
-                        promoCodesDialog.data.extra.promo_codes[index].active
-                          ? $t('events.active')
-                          : $t('events.inactive')
-                      "
-                    ></span>
-                  </q-tooltip>
-                </template>
-              </q-input>
-              <div class="col-4 row items-center">
-                <q-btn
-                  round
-                  dense
-                  flat
-                  icon="delete"
-                  @click="
-                    promoCodesDialog.data.extra.promo_codes.splice(index, 1)
-                  "
-                ></q-btn>
-              </div>
-            </div>
+              ></q-input>
 
-            <div class="row q-col-gutter-sm q-mt-sm">
-              <div class="col-6">
-                <q-toggle
-                  v-model="promoCodesDialog.data.extra.promo_codes[index].combinable"
-                  :label="$t('events.promo_combinable')"
-                  left-label
-                ></q-toggle>
+              <div class="row q-col-gutter-sm q-mt-sm">
+                <div class="col-6">
+                  <q-toggle
+                    v-model="promoCodesDialog.data.extra.promo_codes[index].active"
+                    :label="promoCodesDialog.data.extra.promo_codes[index].active ? $t('events.active') : $t('events.inactive')"
+                    left-label
+                    color="positive"
+                  ></q-toggle>
+                </div>
+                <div class="col-6">
+                  <q-toggle
+                    v-model="promoCodesDialog.data.extra.promo_codes[index].combinable"
+                    :label="$t('events.promo_combinable')"
+                    left-label
+                  ></q-toggle>
+                </div>
               </div>
-              <div class="col-6">
+
+              <q-input
+                class="q-mt-sm"
+                filled
+                dense
+                v-model.number="promoCodesDialog.data.extra.promo_codes[index].max_uses"
+                type="number"
+                :label="$t('events.promo_max_uses')"
+                hint="0 = unlimited"
+                min="0"
+              ></q-input>
+
+              <div class="q-mt-md">
+                <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>
+                <q-btn-toggle
+                  v-model="promoDiscountTypes[index]"
+                  toggle-color="primary"
+                  :options="[
+                    {label: '% ' + $t('events.discount_percent_label'), value: 'percent'},
+                    {label: ' ' + (promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency) + ' ' + $t('events.discount_fixed_label'), value: 'fixed'}
+                  ]"
+                  spread
+                  no-caps
+                  size="sm"
+                ></q-btn-toggle>
+              </div>
+
+              <div class="q-mt-sm">
                 <q-input
+                  v-if="promoDiscountTypes[index] !== 'fixed'"
                   filled
                   dense
-                  v-model.number="promoCodesDialog.data.extra.promo_codes[index].max_uses"
+                  v-model.number="
+                    promoCodesDialog.data.extra.promo_codes[index].discount_percent
+                  "
                   type="number"
-                  :label="$t('events.promo_max_uses')"
-                  :hint="$t('events.promo_max_uses_hint')"
+                  :label="$t('events.discount_percent_label')"
                   min="0"
-                ></q-input>
+                  max="100"
+                  @update:model-value="onPromoDiscountTypeChange(index, 'percent')"
+                >
+                  <template v-slot:after>
+                    <span>%</span>
+                  </template>
+                </q-input>
+                <q-input
+                  v-else
+                  filled
+                  dense
+                  v-model.number="
+                    promoCodesDialog.data.extra.promo_codes[index].discount_fixed
+                  "
+                  type="number"
+                  :label="$t('events.discount_fixed_label')"
+                  min="0"
+                  @update:model-value="onPromoDiscountTypeChange(index, 'fixed')"
+                >
+                  <template v-slot:after>
+                    <span>{{ promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency }}</span>
+                  </template>
+                </q-input>
               </div>
-            </div>
+            </q-card-section>
+          </q-card>
 
-            <q-separator class="q-my-sm" spaced></q-separator>
-            <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>
-            <q-btn-toggle
-              v-model="promoDiscountTypes[index]"
-              toggle-color="primary"
-              :options="[
-                {label: '%', value: 'percent'},
-                {label: promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency, value: 'fixed'}
-              ]"
-              dense
-            ></q-btn-toggle>
-            <div class="q-mt-sm">
-              <q-input
-                v-if="promoDiscountTypes[index] !== 'fixed'"
-                filled
-                dense
-                v-model.number="
-                  promoCodesDialog.data.extra.promo_codes[index].discount_percent
-                "
-                type="number"
-                :label="$t('events.discount_percent_label')"
-                min="0"
-                max="100"
-                @update:model-value="onPromoDiscountTypeChange(index, 'percent')"
-              >
-                <template v-slot:after>
-                  <span>%</span>
-                </template>
-              </q-input>
-              <q-input
-                v-else
-                filled
-                dense
-                v-model.number="
-                  promoCodesDialog.data.extra.promo_codes[index].discount_fixed
-                "
-                type="number"
-                :label="$t('events.discount_fixed_label')"
-                min="0"
-                @update:model-value="onPromoDiscountTypeChange(index, 'fixed')"
-              >
-                <template v-slot:after>
-                  <span>{{ promoCodesDialog.data.currency === 'sat' ? 'sats' : promoCodesDialog.data.currency }}</span>
-                </template>
-              </q-input>
-            </div>
-          </div>
-
-          <div class="col-12 q-mt-md">
+          <div class="col-12">
             <q-btn
               @click="addPromoCodeToDialog"
-              v-text="$t('events.add_promo_code')"
+              outline
+              color="primary"
+              icon="add"
+              :label="$t('events.add_promo_code')"
             ></q-btn>
           </div>
 
