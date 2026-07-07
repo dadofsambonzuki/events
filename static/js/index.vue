@@ -433,17 +433,6 @@
               ></q-input>
             </div>
           </div>
-          <div class="row">
-            <div class="col-4" v-text="$t('events.closing_date_label')"></div>
-            <div class="col-8">
-              <q-input
-                filled
-                dense
-                v-model.trim="formDialog.data.closing_date"
-                type="date"
-              ></q-input>
-            </div>
-          </div>
           <div class="row q-mt-md">
             <div class="col-4" v-text="$t('events.currency_unit')"></div>
             <div class="col-8">
@@ -602,7 +591,6 @@
                 formDialog.data.wallet == null ||
                 formDialog.data.name == null ||
                 formDialog.data.info == null ||
-                formDialog.data.closing_date == null ||
                 formDialog.data.event_start_date == null ||
                 formDialog.data.event_end_date == null
               "

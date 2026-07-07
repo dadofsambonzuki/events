@@ -508,7 +508,7 @@ window.PageEvents = {
       if (!events.length) return
       const now = new Date()
       events.forEach(async ev => {
-        if (new Date(ev.closing_date) < now && ev.sold < ev.extra.min_tickets) {
+        if (new Date(ev.event_end_date) < now && ev.sold < ev.extra.min_tickets) {
           const {data} = await LNbits.api.request(
             'PUT',
             '/events/api/v1/events/' + ev.id + '/cancel',
@@ -557,7 +557,7 @@ window.PageEvents = {
           price: tt?.price || 0,
           max_tickets: tt?.max_tickets || 0,
           available_from: tt?.available_from || event.event_start_date || '',
-          available_to: tt?.available_to || event.closing_date || '',
+          available_to: tt?.available_to || event.event_end_date || '',
           sort_order: tt?.sort_order || 0
         }
       }

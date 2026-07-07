@@ -4,20 +4,17 @@ window.i18n.global.mergeLocaleMessage('es', {
     events_title: 'Eventos',
     export_csv: 'Exportar a CSV',
     tickets_title: 'Entradas',
-    ticket_waves: 'Oleadas de entradas',
     promo_codes: 'Códigos promocionales',
     no_active_promo_codes:
       'No hay códigos promocionales activos para este evento.',
-    wave_chip:
-      '{title} - {opening} al {closing} - {price} - {amount} entradas - {sold} vendidas',
     resend_ticket_email: 'Reenviar email de entrada',
     confirm_onchain_payment: 'Confirmar pago onchain',
     extension_title: 'Extensión de Eventos',
     info_label: 'Info',
     extension_desc_title:
-      'Eventos: Vender y registrar oleadas de entradas para un evento',
+      'Eventos: Vender y registrar entradas para un evento',
     extension_desc:
-      'Eventos te permite crear oleadas de entradas para un evento. Cada entrada es un código QR único que el usuario presenta al registrarse. Eventos incluye un escáner de entradas compartible que puede usarse para registrar asistentes.',
+      'Eventos te permite crear tipos de entradas para un evento. Cada entrada es un código QR único que el usuario presenta al registrarse. Eventos incluye un escáner de entradas compartible que puede usarse para registrar asistentes.',
     created_by: 'Creado por,',
     swagger_api: 'Swagger API',
     event_title_label: 'Título del evento',
@@ -29,11 +26,8 @@ window.i18n.global.mergeLocaleMessage('es', {
       'Imagen de banner opcional para mostrar en la página del evento',
     event_begins: 'El evento comienza',
     event_ends: 'El evento termina',
-    primary_wave_hint:
-      'Oleada de entradas primaria (se pueden añadir más oleadas más adelante)',
-    wave_title_label: 'Título de la oleada',
     opening_date_label: 'Fecha de apertura de entradas',
-    closing_date_label: 'Fecha de cierre de entradas',
+  
     currency_unit: 'Unidad monetaria',
     amount_tickets_label: 'Cantidad de entradas',
     price_label: 'Precio ({currency}) *',
@@ -86,10 +80,6 @@ window.i18n.global.mergeLocaleMessage('es', {
     discount_label: 'Descuento (%)',
     add_promo_code: 'Añadir código promocional',
     save_promo_codes: 'Guardar códigos promocionales',
-    edit_ticket_wave: 'Editar oleada de entradas',
-    add_ticket_wave: 'Añadir oleada de entradas',
-    update_ticket_wave: 'Actualizar oleada de entradas',
-    save_ticket_wave: 'Guardar oleada de entradas',
     email_resent: 'Email de entrada reenviado.',
     email_resend_failed: 'Email de entrada fallido: {error}',
     nostr_resent: 'Nostr DM de entrada reenviado.',
@@ -97,8 +87,6 @@ window.i18n.global.mergeLocaleMessage('es', {
     unknown_error: 'Error desconocido.',
     onchain_confirmed: 'Pago onchain confirmado.',
     ticket_template_uploaded: 'Plantilla de entrada subida.',
-    ticket_wave_updated: 'Oleada de entradas actualizada.',
-    ticket_wave_added: 'Oleada de entradas añadida.',
     promo_codes_updated: 'Códigos promocionales actualizados.',
     delete_ticket_confirm: '¿Está seguro de que quiere eliminar esta entrada?',
     delete_event_confirm: '¿Está seguro de que quiere eliminar este evento?',
@@ -127,7 +115,6 @@ window.i18n.global.mergeLocaleMessage('es', {
     refund_label: 'Lnaddress o LNURL de reembolso',
     refund_hint:
       'Si no se alcanzan las entradas mínimas ({min_tickets}), se enviará un reembolso.',
-    ticket_wave_label: 'Oleada de entradas',
     link_to_ticket: '¡Enlace a tu entrada!',
     continue_to_checkout: 'Continuar al pago',
     fiat_checkout_opened:

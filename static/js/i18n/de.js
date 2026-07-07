@@ -4,19 +4,16 @@ window.i18n.global.mergeLocaleMessage('de', {
     events_title: 'Veranstaltungen',
     export_csv: 'Als CSV exportieren',
     tickets_title: 'Tickets',
-    ticket_waves: 'Ticket-Wellen',
     promo_codes: 'Promo-Codes',
     no_active_promo_codes: 'Keine aktiven Promo-Codes für diese Veranstaltung.',
-    wave_chip:
-      '{title} - {opening} bis {closing} - {price} - {amount} Tickets - {sold} verkauft',
     resend_ticket_email: 'Ticket-E-Mail erneut senden',
     confirm_onchain_payment: 'Onchain-Zahlung bestätigen',
     extension_title: 'Events-Erweiterung',
     info_label: 'Info',
     extension_desc_title:
-      'Events: Ticket-Wellen für eine Veranstaltung verkaufen und registrieren',
+      'Events: Tickets für eine Veranstaltung verkaufen und registrieren',
     extension_desc:
-      'Mit Events können Sie eine Welle von Tickets für eine Veranstaltung erstellen. Jedes Ticket ist ein einzigartiger QR-Code, den der Nutzer bei der Anmeldung vorzeigt. Events wird mit einem teilbaren Ticket-Scanner geliefert, mit dem Teilnehmer registriert werden können.',
+      'Mit Events können Sie Ticket-Typen für eine Veranstaltung erstellen. Jedes Ticket ist ein einzigartiger QR-Code, den der Nutzer bei der Anmeldung vorzeigt. Events wird mit einem teilbaren Ticket-Scanner geliefert, mit dem Teilnehmer registriert werden können.',
     created_by: 'Erstellt von,',
     swagger_api: 'Swagger API',
     event_title_label: 'Titel der Veranstaltung',
@@ -27,11 +24,8 @@ window.i18n.global.mergeLocaleMessage('de', {
     image_url_hint: 'Optionales Bannerbild für die Veranstaltungsseite',
     event_begins: 'Veranstaltung beginnt',
     event_ends: 'Veranstaltung endet',
-    primary_wave_hint:
-      'Primäre Ticket-Welle (weitere Wellen können später hinzugefügt werden)',
-    wave_title_label: 'Wellenbezeichnung',
     opening_date_label: 'Öffnungsdatum der Tickets',
-    closing_date_label: 'Schlussdatum der Tickets',
+  
     currency_unit: 'Währungseinheit',
     amount_tickets_label: 'Anzahl der Tickets',
     price_label: 'Preis ({currency}) *',
@@ -84,10 +78,6 @@ window.i18n.global.mergeLocaleMessage('de', {
     discount_label: 'Rabatt (%)',
     add_promo_code: 'Promo-Code hinzufügen',
     save_promo_codes: 'Promo-Codes speichern',
-    edit_ticket_wave: 'Ticket-Welle bearbeiten',
-    add_ticket_wave: 'Ticket-Welle hinzufügen',
-    update_ticket_wave: 'Ticket-Welle aktualisieren',
-    save_ticket_wave: 'Ticket-Welle speichern',
     email_resent: 'Ticket-E-Mail erneut gesendet.',
     email_resend_failed: 'Ticket-E-Mail fehlgeschlagen: {error}',
     nostr_resent: 'Ticket Nostr DM erneut gesendet.',
@@ -95,8 +85,6 @@ window.i18n.global.mergeLocaleMessage('de', {
     unknown_error: 'Unbekannter Fehler.',
     onchain_confirmed: 'Onchain-Zahlung bestätigt.',
     ticket_template_uploaded: 'Ticket-Vorlage hochgeladen.',
-    ticket_wave_updated: 'Ticket-Welle aktualisiert.',
-    ticket_wave_added: 'Ticket-Welle hinzugefügt.',
     promo_codes_updated: 'Promo-Codes aktualisiert.',
     delete_ticket_confirm:
       'Sind Sie sicher, dass Sie dieses Ticket löschen möchten?',
@@ -127,7 +115,6 @@ window.i18n.global.mergeLocaleMessage('de', {
     refund_label: 'Rückerstattungs-Lnaddress oder LNURL',
     refund_hint:
       'Wenn die Mindestanzahl von {min_tickets} Tickets nicht erreicht wird, wird eine Rückerstattung gesendet.',
-    ticket_wave_label: 'Ticket-Welle',
     link_to_ticket: 'Link zu Ihrem Ticket!',
     continue_to_checkout: 'Weiter zur Kasse',
     fiat_checkout_opened:

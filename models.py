@@ -72,7 +72,6 @@ class CreateEvent(BaseModel):
     wallet: str
     name: str
     info: str
-    closing_date: str
     event_start_date: str
     event_end_date: str
     currency: str = "sat"
@@ -90,7 +89,6 @@ class Event(BaseModel):
     wallet: str
     name: str
     info: str
-    closing_date: str
     canceled: bool = False
     event_start_date: str
     event_end_date: str
@@ -110,7 +108,6 @@ class PublicEvent(BaseModel):
     id: str
     name: str
     info: str
-    closing_date: str
     canceled: bool
     event_start_date: str
     event_end_date: str
@@ -304,6 +301,5 @@ def sync_event_from_ticket_types(
 
     event.amount_tickets = sum(tt.max_tickets for tt in ticket_types)
     event.price_per_ticket = ticket_types[0].price
-    event.closing_date = max(tt.available_to for tt in ticket_types)
 
     return event

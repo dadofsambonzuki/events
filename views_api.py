@@ -112,7 +112,7 @@ async def api_create_event(
             price=data.price_per_ticket,
             max_tickets=data.amount_tickets,
             available_from=data.event_start_date,
-            available_to=data.closing_date,
+            available_to=data.event_end_date,
         )
         await create_ticket_type(default_tt)
     return event
@@ -190,9 +190,10 @@ async def api_get_event(event_id: str) -> Event:
     if not available_types:
         raise HTTPException(status_code=HTTPStatus.GONE, detail="Event is sold out.")
 
-    is_sales_closed = (
-        today_date > datetime.strptime(event.closing_date, "%Y-%m-%d").date()
+    latest_available_to = max(
+        datetime.strptime(tt.available_to, "%Y-%m-%d").date() for tt in ticket_types
     )
+    is_sales_closed = today_date > latest_available_to
     is_min_tickets_met = (
         event.sold >= event.extra.min_tickets if event.extra.conditional else True
     )
