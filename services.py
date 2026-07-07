@@ -320,8 +320,7 @@ async def _activate_basket_tickets(
     basket.paid = True
     await update_basket(basket)
     await _increment_promo_uses_from_basket(event, basket)
-    for ticket in tickets:
-        send_ticket_notification_in_background(ticket)
+    _send_basket_notifications_in_background(basket, tickets, event)
     if event.admin_email:
         create_task(_send_admin_sale_notification(event, basket, tickets))
 
@@ -466,6 +465,48 @@ async def send_bulk_message(
 
 def send_ticket_notification_in_background(ticket: Ticket) -> None:
     create_task(_send_ticket_notification(ticket))
+
+
+def _send_basket_notifications_in_background(
+    basket: Basket, tickets: list[Ticket], event: Event
+) -> None:
+    create_task(_send_basket_ticket_notifications(basket, tickets, event))
+
+
+async def _send_basket_ticket_notifications(
+    basket: Basket, tickets: list[Ticket], event: Event
+) -> None:
+    if not event.extra.email_notifications:
+        return
+    if not settings.lnbits_email_notifications_enabled:
+        return
+
+    by_email: dict[str, list[Ticket]] = {}
+    for ticket in tickets:
+        if ticket.email:
+            by_email.setdefault(ticket.email, []).append(ticket)
+
+    for email, email_tickets in by_email.items():
+        subject = (
+            event.extra.notification_subject.strip()
+            or f"Your tickets for '{event.name}' are ready"
+        )
+        body = (
+            event.extra.notification_body.strip()
+            or f"Your tickets for '{event.name}' are ready."
+        )
+        ticket_urls = "\n".join(f"- Open ticket: {_ticket_url(t)}" for t in email_tickets)
+        text_message = f"{body}\n\n{ticket_urls}"
+        html_message = f"<p>{escape(text_message).replace(chr(10), '<br />')}</p>"
+
+        try:
+            await _send_ticket_email_notification(
+                [email], text_message, subject, html_message
+            )
+            for t in email_tickets:
+                t.extra.email_notification_sent = True
+        except Exception as exc:
+            logger.warning(f"Failed to email tickets to {email}: {exc}")
 
 
 async def _send_ticket_notification(ticket: Ticket) -> None:

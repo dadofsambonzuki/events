@@ -6,8 +6,8 @@ window.PageEventsDisplay = {
       event: null,
       ticketTypes: [],
       itemQuantities: {},
-      attendeeFields: {},
-      copyDetailsToAll: {},
+      basketName: '',
+      basketEmail: '',
       promoCodeInput: '',
       discountBreakdown: [],
       basketTotal: 0,
@@ -59,13 +59,8 @@ window.PageEventsDisplay = {
         item => item.quantity > 0
       )
       if (!hasItems) return false
-      for (const item of this.basketItems) {
-        if (item.quantity <= 0) continue
-        const attendees = this.attendeeFields[item.ticketTypeId] || []
-        for (const a of attendees) {
-          if (!a.name || !a.email) return false
-        }
-      }
+      if (!this.basketEmail) return false
+      if (!/^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$/.test(this.basketEmail)) return false
       return true
     },
     allowEmailNotifications() {
@@ -142,47 +137,6 @@ window.PageEventsDisplay = {
       const qty = this.itemQuantities[tt.id] || 0
       if (qty <= 0) return
       this.addToBasket(tt, qty)
-      this.expandAttendeeFor(tt.id)
-    },
-    expandAttendeeFor(ttId) {
-      const item = this.basketItems.find(i => i.ticketTypeId === ttId)
-      if (!item) return
-      const current = this.attendeeFields[ttId] || []
-      while (current.length < item.quantity) {
-        current.push({name: '', email: ''})
-      }
-      while (current.length > item.quantity) {
-        current.pop()
-      }
-      this.attendeeFields[ttId] = current
-    },
-    updateAttendeeName(ttId, idx, val) {
-      if (!this.attendeeFields[ttId]) return
-      this.attendeeFields[ttId][idx].name = val
-      if (this.copyDetailsToAll[ttId]) {
-        for (const a of this.attendeeFields[ttId]) {
-          a.name = val
-        }
-      }
-    },
-    updateAttendeeEmail(ttId, idx, val) {
-      if (!this.attendeeFields[ttId]) return
-      this.attendeeFields[ttId][idx].email = val
-      if (this.copyDetailsToAll[ttId]) {
-        for (const a of this.attendeeFields[ttId]) {
-          a.email = val
-        }
-      }
-    },
-    onCopyDetails(ttId) {
-      if (!this.copyDetailsToAll[ttId]) return
-      const attendees = this.attendeeFields[ttId] || []
-      if (attendees.length === 0) return
-      const first = attendees[0]
-      for (let i = 1; i < attendees.length; i++) {
-        attendees[i].name = first.name
-        attendees[i].email = first.email
-      }
     },
     rebuildBasket() {
       this.basketItems = this.basketItems.filter(
@@ -239,14 +193,7 @@ window.PageEventsDisplay = {
         this.applyingPromo = false
       }
     },
-    nameValidation(val) {
-      const regex = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/g
-      return !regex.test(val) || this.$t('events.name_validation')
-    },
-    emailValidation(val) {
-      const regex = /^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$/
-      return regex.test(val) || this.$t('events.email_validation')
-    },
+  
     async checkout() {
       if (this.checkoutLoading || !this.canCheckout) return
       this.checkoutLoading = true
@@ -255,10 +202,6 @@ window.PageEventsDisplay = {
           ticket_type_id: bi.ticketTypeId,
           quantity: bi.quantity
         }))
-        const primaryItem = this.basketItems[0]
-        const primaryAttendees =
-          this.attendeeFields[primaryItem.ticketTypeId] || []
-        const primary = primaryAttendees[0] || {name: '', email: ''}
         const promo_codes = this.promoCodeInput
           .split(',')
           .map(c => c.trim().toUpperCase())
@@ -268,8 +211,8 @@ window.PageEventsDisplay = {
           : undefined
 
         const body = {
-          name: primary.name,
-          email: primary.email,
+          name: this.basketName,
+          email: this.basketEmail,
           items,
           promo_codes,
           payment_method: null,

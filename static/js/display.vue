@@ -59,7 +59,7 @@
               </div>
               <div class="col-auto">
                 <q-chip outline>
-                  {{ tt.available_from }} - {{ tt.available_to }}
+                  {{ $t('events.available_until') }} {{ tt.available_to }}
                 </q-chip>
               </div>
             </div>
@@ -99,19 +99,6 @@
         :hint="$t('events.refund_hint', {min_tickets: event.extra?.min_tickets})"
       ></q-input>
 
-      <div
-        v-if="allowNostrNotifications"
-        class="q-mb-md"
-      >
-        <q-input
-          filled
-          dense
-          v-model.trim="nostrIdentifier"
-          :label="$t('events.nostr_nip05_label')"
-          :hint="$t('events.nostr_nip05_hint')"
-        ></q-input>
-      </div>
-
       <q-card v-if="basket.length > 0 || basketTotal > 0">
         <q-card-section>
           <h5 class="q-mt-none" v-text="$t('events.basket')"></h5>
@@ -130,47 +117,22 @@
             </div>
           </div>
 
-          <div v-for="bi in basket" :key="'att-'+bi.ticketTypeId" class="q-mt-sm">
-            <template v-if="attendeeFields[bi.ticketTypeId]?.length > 0">
-              <div class="row items-center q-mb-sm">
-                <div class="text-subtitle2 q-mr-sm">{{ $t('events.attendees_for') }} {{ bi.name }}</div>
-                <q-checkbox
-                  v-model="copyDetailsToAll[bi.ticketTypeId]"
-                  :label="$t('events.copy_details_to_all')"
-                  dense
-                  @update:model-value="onCopyDetails(bi.ticketTypeId)"
-                ></q-checkbox>
-              </div>
-              <div
-                v-for="(attendee, idx) in attendeeFields[bi.ticketTypeId]"
-                :key="idx"
-                class="row q-col-gutter-sm q-mb-sm"
-              >
-                <div class="col-12 col-md-5">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="attendee.name"
-                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('events.name')}`"
-                    :rules="[val => nameValidation(val)]"
-                  ></q-input>
-                </div>
-                <div class="col-12 col-md-5">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="attendee.email"
-                    type="email"
-                    :label="`${$t('events.attendee')} ${idx + 1} ${$t('email')}`"
-                    :rules="[val => !!val || $t('events.required'), val => emailValidation(val)]"
-                    lazy-rules
-                  ></q-input>
-                </div>
-              </div>
-            </template>
+          <div v-if="basket.length > 0" class="q-mt-md q-gutter-md">
+            <q-input
+              filled
+              dense
+              v-model.trim="basketName"
+              :label="$t('events.your_name_label')"
+            ></q-input>
+            <q-input
+              filled
+              dense
+              v-model.trim="basketEmail"
+              type="email"
+              :label="$t('events.your_email_delivery_label')"
+            ></q-input>
           </div>
 
-          <q-separator v-if="basket.length > 0"></q-separator>
           <div class="q-mt-sm">
             <div class="row items-center q-col-gutter-sm">
               <div class="col">
@@ -179,7 +141,6 @@
                   dense
                   v-model.trim="promoCodeInput"
                   :label="$t('events.promo_code_comma_separated')"
-                  :hint="$t('events.promo_code_hint')"
                   @keyup.enter="applyPromoCode"
                 ></q-input>
               </div>
@@ -200,21 +161,29 @@
               {{ d.label }}
             </div>
           </div>
+          <div v-if="allowNostrNotifications" class="q-mt-md">
+            <q-input
+              filled
+              dense
+              v-model.trim="nostrIdentifier"
+              :label="$t('events.nostr_nip05_label')"
+              :hint="$t('events.nostr_nip05_hint')"
+            ></q-input>
+          </div>
           <div class="text-h6 q-mt-md text-right">
             Total: {{ basketTotal }} {{ basketCurrency }}
           </div>
+          <div class="text-center q-mt-lg">
+            <q-btn
+              unelevated
+              color="primary"
+              :disable="!canCheckout"
+              :loading="checkoutLoading"
+              @click="checkout"
+              v-text="$t('events.checkout')"
+            ></q-btn>
+          </div>
         </q-card-section>
-        <q-card-actions align="right">
-          <q-btn
-            unelevated
-            color="primary"
-            size="lg"
-            :disable="!canCheckout"
-            :loading="checkoutLoading"
-            @click="checkout"
-            v-text="$t('events.checkout')"
-          ></q-btn>
-        </q-card-actions>
       </q-card>
 
       <q-card v-show="ticketLink.show" class="q-pa-lg">
