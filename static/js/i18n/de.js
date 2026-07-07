@@ -32,7 +32,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     wave_title_label: 'Wellenbezeichnung',
     opening_date_label: 'Öffnungsdatum der Tickets',
     closing_date_label: 'Schlussdatum der Tickets',
-    unit_label: 'Einheit',
+    currency_unit: 'Währungseinheit',
     amount_tickets_label: 'Anzahl der Tickets',
     price_label: 'Preis ({currency}) *',
     use_ticket_image: 'Ticket-Bild verwenden',
@@ -44,11 +44,9 @@ window.i18n.global.mergeLocaleMessage('de', {
     fiat: 'Fiat',
     onchain: 'Onchain',
     ln_wallet_label: 'LN Wallet',
-    ln_wallet_hint: 'Wallet für Lightning-Zahlungen. Leer lassen, um die Event-Wallet zu verwenden.',
     onchain_wallet_label: 'Onchain Wallet',
     onchain_disabled_hint: 'Die Onchain Wallet (WatchOnly) Erweiterung muss aktiviert sein und eine Wallet haben.',
-    fiat_payment_hint: 'Verwendet SatsPay Fiat-Anbieter (in der SatsPay-Erweiterung konfiguriert).',
-    advanced_options: 'Erweiterte Optionen',
+  
     conditional_events_title: 'Bedingte Veranstaltungen',
     conditional_events_desc:
       'Machen Sie diese Veranstaltung bedingt, wenn eine Mindestanzahl an Tickets verkauft wird. Der Nutzer wird gebeten, eine Lightning-Adresse oder LNURL-Pay für Rückerstattungen anzugeben.',

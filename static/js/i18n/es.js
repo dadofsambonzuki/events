@@ -34,7 +34,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     wave_title_label: 'Título de la oleada',
     opening_date_label: 'Fecha de apertura de entradas',
     closing_date_label: 'Fecha de cierre de entradas',
-    unit_label: 'Unidad',
+    currency_unit: 'Unidad monetaria',
     amount_tickets_label: 'Cantidad de entradas',
     price_label: 'Precio ({currency}) *',
     use_ticket_image: 'Usar imagen de entrada',
@@ -46,11 +46,9 @@ window.i18n.global.mergeLocaleMessage('es', {
     fiat: 'Fiat',
     onchain: 'Onchain',
     ln_wallet_label: 'Monedero LN',
-    ln_wallet_hint: 'Monedero para recibir pagos Lightning. Dejar vacío para usar el monedero del evento.',
     onchain_wallet_label: 'Monedero Onchain',
     onchain_disabled_hint: 'La extensión Onchain Wallet (WatchOnly) debe estar activada y tener un monedero.',
-    fiat_payment_hint: 'Usa los proveedores fiat de SatsPay (configurados en la extensión SatsPay).',
-    advanced_options: 'Opciones avanzadas',
+  
     conditional_events_title: 'Eventos condicionales',
     conditional_events_desc:
       'Haz este evento condicional si se vende un mínimo de entradas. Se pedirá al usuario que proporcione una dirección Lightning o LNURL pay para reembolsos.',

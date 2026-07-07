@@ -359,6 +359,14 @@ window.PageEvents = {
         id: this.formDialog.data.wallet
       })
       const data = this.formDialog.data
+      if (this.paymentMethods.ln && !data.extra?.ln_wallet_id) {
+        this.$q.notify({message: 'Select an LN wallet for Lightning payments.', type: 'negative'})
+        return
+      }
+      if (this.paymentMethods.onchain && !data.extra?.onchain_wallet_id) {
+        this.$q.notify({message: 'Select an onchain wallet for onchain payments.', type: 'negative'})
+        return
+      }
       if (data.extra?.promo_codes) {
         data.extra.promo_codes = this.normalizePromoCodes(
           data.extra.promo_codes

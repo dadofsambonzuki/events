@@ -30,7 +30,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     wave_title_label: 'Wave title',
     opening_date_label: 'Ticket opening date',
     closing_date_label: 'Ticket closing date',
-    unit_label: 'Unit',
+    currency_unit: 'Currency unit',
     amount_tickets_label: 'Amount of tickets',
     price_label: 'Price ({currency}) *',
     use_ticket_image: 'Use ticket image',
@@ -42,11 +42,9 @@ window.i18n.global.mergeLocaleMessage('en', {
     fiat: 'Fiat',
     onchain: 'Onchain',
     ln_wallet_label: 'LN Wallet',
-    ln_wallet_hint: 'Wallet to receive Lightning payments. Leave empty to use the event wallet.',
     onchain_wallet_label: 'Onchain Wallet',
     onchain_disabled_hint: 'Onchain Wallet (WatchOnly) extension must be activated and have a wallet.',
-    fiat_payment_hint: 'Uses SatsPay fiat providers (configured in SatsPay extension).',
-    advanced_options: 'Advanced options',
+  
     conditional_events_title: 'Conditional Events',
     conditional_events_desc:
       'Make this event conditional if minimum tickets are sold. User will be asked to provide a Lightning Address or LNURL pay for refunds.',

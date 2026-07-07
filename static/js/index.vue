@@ -377,26 +377,14 @@
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
         <q-form @submit="sendEventData" class="q-gutter-md">
           <div class="row">
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.trim="formDialog.data.name"
-                type="name"
-                :label="$t('events.event_title_label')"
-              ></q-input>
-            </div>
-            <div class="col q-pl-sm">
-              <q-select
-                filled
-                dense
-                emit-value
-                v-model="formDialog.data.wallet"
-                :options="g.user.walletOptions"
-                :label="$t('events.wallet_label')"
-              >
-              </q-select>
-            </div>
+            <q-input
+              class="col"
+              filled
+              dense
+              v-model.trim="formDialog.data.name"
+              type="name"
+              :label="$t('events.event_title_label')"
+            ></q-input>
           </div>
 
           <q-input
@@ -445,7 +433,6 @@
               ></q-input>
             </div>
           </div>
-          <q-separator class="q-my-md"></q-separator>
           <div class="row">
             <div class="col-4" v-text="$t('events.closing_date_label')"></div>
             <div class="col-8">
@@ -457,21 +444,21 @@
               ></q-input>
             </div>
           </div>
-          <div class="row q-col-gutter-sm">
-            <div class="col">
+          <div class="row q-mt-md">
+            <div class="col-4" v-text="$t('events.currency_unit')"></div>
+            <div class="col-8">
               <q-select
                 filled
                 dense
                 v-model="formDialog.data.currency"
-                type="text"
-                :label="$t('events.unit_label')"
                 :options="currencies"
               ></q-select>
             </div>
           </div>
-          <div class="q-mt-md">
-            <div class="text-subtitle2 q-mb-sm">{{ $t('events.payment_methods') }}</div>
-            <div class="row q-col-gutter-sm">
+          <q-separator class="q-my-md"></q-separator>
+          <div>
+            <div class="text-subtitle1 q-mb-md">{{ $t('events.payment_methods') }}</div>
+            <div class="row q-col-gutter-sm items-center q-mb-sm">
               <div class="col-auto">
                 <q-checkbox
                   v-model="paymentMethods.ln"
@@ -488,11 +475,10 @@
                   v-model="formDialog.data.extra.ln_wallet_id"
                   :options="g.user.walletOptions"
                   :label="$t('events.ln_wallet_label')"
-                  :hint="$t('events.ln_wallet_hint')"
                 ></q-select>
               </div>
             </div>
-            <div class="row q-col-gutter-sm">
+            <div class="row q-col-gutter-sm items-center q-mb-sm">
               <div v-if="watchonlyWallets.length > 0" class="col-auto">
                 <q-checkbox
                   v-model="paymentMethods.onchain"
@@ -517,97 +503,85 @@
                 ></q-select>
               </div>
             </div>
-            <div class="row">
+            <div class="row items-center">
               <div class="col-auto">
                 <q-checkbox
                   v-model="paymentMethods.fiat"
                   :label="$t('events.fiat')"
                   left-label
-                  :hint="$t('events.fiat_payment_hint')"
                 ></q-checkbox>
               </div>
             </div>
           </div>
-          <q-expansion-item
-            group="advanced"
-            icon="settings"
-            :label="$t('events.advanced_options')"
+          <q-separator class="q-my-md"></q-separator>
+          <div
+            class="text-subtitle1 q-mb-md"
+            v-text="$t('events.ticket_delivery_title')"
+          ></div>
+          <div
+            class="text-caption"
+            v-text="$t('events.ticket_delivery_desc')"
+          ></div>
+          <q-toggle
+            v-model="formDialog.data.extra.email_notifications"
+            :label="$t('events.email_notifications')"
+            left-label
+          ></q-toggle>
+          <q-toggle
+            v-model="formDialog.data.extra.nostr_notifications"
+            :label="$t('events.nostr_notifications')"
+            left-label
+          ></q-toggle>
+          <div
+            v-if="formDialog.data.extra.email_notifications"
+            class="q-mt-md"
           >
-            <div class="row q-mt-lg">
-              <div
-                class="text-subtitle1 q-mb-md"
-                v-text="$t('events.conditional_events_title')"
-              ></div>
-              <div
-                class="text-caption"
-                v-text="$t('events.conditional_events_desc')"
-              ></div>
-              <div class="col-8">
-                <q-toggle
-                  v-model="formDialog.data.extra.conditional"
-                  :label="$t('events.conditional_event_label')"
-                  left-label
-                ></q-toggle>
-              </div>
-              <div class="col-4">
-                <q-input
-                  filled
-                  dense
-                  v-model.number="formDialog.data.extra.min_tickets"
-                  type="number"
-                  :label="$t('events.min_tickets_label')"
-                  :disable="!formDialog.data.extra.conditional"
-                ></q-input>
-              </div>
-            </div>
-            <q-separator class="q-my-md"></q-separator>
-            <div
-              class="text-subtitle1 q-mb-md"
-              v-text="$t('events.ticket_delivery_title')"
-            ></div>
-            <div
-              class="text-caption"
-              v-text="$t('events.ticket_delivery_desc')"
-            ></div>
-            <div class="row items-center q-col-gutter-md">
-              <div class="col-auto">
-                <q-toggle
-                  v-model="formDialog.data.extra.email_notifications"
-                  :label="$t('events.email_notifications')"
-                  left-label
-                ></q-toggle>
-              </div>
-              <div class="col-auto">
-                <q-toggle
-                  v-model="formDialog.data.extra.nostr_notifications"
-                  :label="$t('events.nostr_notifications')"
-                  left-label
-                ></q-toggle>
-              </div>
-            </div>
-            <div
-              v-if="formDialog.data.extra.email_notifications"
+            <q-input
+              filled
+              dense
+              v-model.trim="formDialog.data.extra.notification_subject"
+              type="text"
+              :label="$t('events.notification_subject_label')"
+              :hint="$t('events.notification_subject_hint')"
+            ></q-input>
+            <q-input
               class="q-mt-md"
-            >
+              filled
+              dense
+              v-model.trim="formDialog.data.extra.notification_body"
+              type="textarea"
+              :label="$t('events.notification_body_label')"
+              :hint="$t('events.notification_body_hint')"
+            ></q-input>
+          </div>
+          <q-separator class="q-my-md"></q-separator>
+          <div
+            class="text-subtitle1 q-mb-md"
+            v-text="$t('events.conditional_events_title')"
+          ></div>
+          <div
+            class="text-caption"
+            v-text="$t('events.conditional_events_desc')"
+          ></div>
+          <div class="row">
+            <div class="col-8">
+              <q-toggle
+                v-model="formDialog.data.extra.conditional"
+                :label="$t('events.conditional_event_label')"
+                left-label
+              ></q-toggle>
+            </div>
+            <div class="col-4">
               <q-input
                 filled
                 dense
-                v-model.trim="formDialog.data.extra.notification_subject"
-                type="text"
-                :label="$t('events.notification_subject_label')"
-                :hint="$t('events.notification_subject_hint')"
-              ></q-input>
-              <q-input
-                class="q-mt-md"
-                filled
-                dense
-                v-model.trim="formDialog.data.extra.notification_body"
-                type="textarea"
-                :label="$t('events.notification_body_label')"
-                :hint="$t('events.notification_body_hint')"
+                v-model.number="formDialog.data.extra.min_tickets"
+                type="number"
+                :label="$t('events.min_tickets_label')"
+                :disable="!formDialog.data.extra.conditional"
               ></q-input>
             </div>
-          </q-expansion-item>
+          </div>
 
           <div class="row q-mt-lg">
             <q-btn
