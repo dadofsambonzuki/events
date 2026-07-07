@@ -447,8 +447,8 @@
           <q-separator class="q-my-md"></q-separator>
           <div>
             <div class="text-subtitle1 q-mb-md">{{ $t('events.payment_methods') }}</div>
-            <div class="row q-col-gutter-sm items-center q-mb-sm">
-              <div class="col-auto">
+            <div class="row items-center q-mb-sm">
+              <div class="col-3">
                 <q-checkbox
                   v-model="paymentMethods.ln"
                   :label="$t('events.lightning')"
@@ -467,16 +467,15 @@
                 ></q-select>
               </div>
             </div>
-            <div class="row q-col-gutter-sm items-center q-mb-sm">
-              <div v-if="watchonlyWallets.length > 0" class="col-auto">
+            <div class="row items-center q-mb-sm">
+              <div class="col-3">
                 <q-checkbox
+                  v-if="watchonlyWallets.length > 0"
                   v-model="paymentMethods.onchain"
                   :label="$t('events.onchain')"
                   left-label
                 ></q-checkbox>
-              </div>
-              <div v-else class="col-auto">
-                <q-checkbox :value="false" :label="$t('events.onchain')" left-label disabled>
+                <q-checkbox v-else :value="false" :label="$t('events.onchain')" left-label disabled>
                   <q-tooltip>{{ $t('events.onchain_disabled_hint') }}</q-tooltip>
                 </q-checkbox>
               </div>
@@ -492,17 +491,21 @@
                 ></q-select>
               </div>
             </div>
-            <div>
-              <q-checkbox
-                v-model="paymentMethods.fiat"
-                :label="$t('events.fiat')"
-                left-label
-              ></q-checkbox>
-              <div
-                v-if="paymentMethods.fiat"
-                class="text-caption q-ml-lg"
-                v-text="$t('events.fiat_provider_hint')"
-              ></div>
+            <div class="row items-center">
+              <div class="col-3">
+                <q-checkbox
+                  v-model="paymentMethods.fiat"
+                  :label="$t('events.fiat')"
+                  left-label
+                ></q-checkbox>
+              </div>
+              <div class="col">
+                <span
+                  v-if="paymentMethods.fiat"
+                  class="text-caption"
+                  v-text="$t('events.fiat_provider_hint')"
+                ></span>
+              </div>
             </div>
           </div>
           <q-separator class="q-my-md"></q-separator>
