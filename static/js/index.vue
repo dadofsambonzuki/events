@@ -503,14 +503,17 @@
                 ></q-select>
               </div>
             </div>
-            <div class="row items-center">
-              <div class="col-auto">
-                <q-checkbox
-                  v-model="paymentMethods.fiat"
-                  :label="$t('events.fiat')"
-                  left-label
-                ></q-checkbox>
-              </div>
+            <div>
+              <q-checkbox
+                v-model="paymentMethods.fiat"
+                :label="$t('events.fiat')"
+                left-label
+              ></q-checkbox>
+              <div
+                v-if="paymentMethods.fiat"
+                class="text-caption q-ml-lg"
+                v-text="$t('events.fiat_provider_hint')"
+              ></div>
             </div>
           </div>
           <q-separator class="q-my-md"></q-separator>

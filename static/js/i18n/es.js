@@ -48,6 +48,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     ln_wallet_label: 'Monedero LN',
     onchain_wallet_label: 'Monedero Onchain',
     onchain_disabled_hint: 'La extensión Onchain Wallet (WatchOnly) debe estar activada y tener un monedero.',
+    fiat_provider_hint: 'Los proveedores fiat deben configurarse en los ajustes del servidor SatsPay.',
   
     conditional_events_title: 'Eventos condicionales',
     conditional_events_desc:

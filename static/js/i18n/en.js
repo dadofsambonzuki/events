@@ -44,6 +44,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     ln_wallet_label: 'LN Wallet',
     onchain_wallet_label: 'Onchain Wallet',
     onchain_disabled_hint: 'Onchain Wallet (WatchOnly) extension must be activated and have a wallet.',
+    fiat_provider_hint: 'Fiat providers must be configured in your SatsPay server settings.',
   
     conditional_events_title: 'Conditional Events',
     conditional_events_desc:
