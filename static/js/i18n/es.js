@@ -81,6 +81,7 @@ window.i18n.global.mergeLocaleMessage('es', {
 	add_promo_code: 'Añadir código promocional',
 	edit_promo_code: 'Editar código promocional',
 	promo_code_exists: 'Este código promocional ya existe.',
+	save: 'Guardar',
     save_promo_codes: 'Guardar códigos promocionales',
     email_resent: 'Email de entrada reenviado.',
     email_resend_failed: 'Email de entrada fallido: {error}',

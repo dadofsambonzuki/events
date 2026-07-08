@@ -80,6 +80,7 @@ window.i18n.global.mergeLocaleMessage('de', {
 	add_promo_code: 'Promo-Code hinzufügen',
 	edit_promo_code: 'Promo-Code bearbeiten',
 	promo_code_exists: 'Dieser Promo-Code existiert bereits.',
+	save: 'Speichern',
     save_promo_codes: 'Promo-Codes speichern',
     email_resent: 'Ticket-E-Mail erneut gesendet.',
     email_resend_failed: 'Ticket-E-Mail fehlgeschlagen: {error}',

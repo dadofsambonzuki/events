@@ -111,18 +111,17 @@
                 <q-td colspan="100%">
                   <div class="q-pa-md">
 
-                    <div class="row items-center q-mb-md">
+                    <div class="row items-center q-gutter-x-sm q-mb-md">
                       <div
                         class="text-subtitle1"
                         v-text="$t('events.ticket_types')"
                       ></div>
                       <q-btn
-                        round
-                        dense
                         unelevated
-                        color="primary"
+                        dense
+                        size="sm"
                         icon="add"
-                        class="q-ml-sm"
+                        color="primary"
                         @click="openTicketTypeDialog(props.row.id)"
                       ></q-btn>
                     </div>
@@ -959,8 +958,8 @@
               v-model="editPromoCodeDialog.discountType"
               toggle-color="primary"
               :options="[
-                {label: '% ' + $t('events.discount_percent_label'), value: 'percent'},
-                {label: ' ' + $t('events.discount_fixed_label'), value: 'fixed'}
+                {label: $t('events.discount_percent_label'), value: 'percent'},
+                {label: $t('events.discount_fixed_label'), value: 'fixed'}
               ]"
               spread
               no-caps
@@ -1009,7 +1008,7 @@
                 unelevated
                 color="primary"
                 type="submit"
-                v-text="$t('events.save_promo_codes')"
+                v-text="$t('events.save')"
               ></q-btn>
             </div>
           </div>
