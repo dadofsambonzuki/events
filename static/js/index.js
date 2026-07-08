@@ -917,27 +917,34 @@ window.PageEvents = {
       const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
       if (!wallet) return
 
-      this.resendingAllEmailsFor.push(eventId)
-      LNbits.api
-        .request(
-          'POST',
-          `/events/api/v1/events/${eventId}/email-tickets`,
-          wallet.adminkey,
-          null
-        )
-        .then(response => {
-          Quasar.Notify.create({
-            type: 'positive',
-            message: this.$t('events.bulk_email_sent'),
-            icon: null
-          })
-        })
-        .catch(LNbits.utils.notifyApiError)
-        .finally(() => {
-          this.resendingAllEmailsFor = this.resendingAllEmailsFor.filter(
-            id => id !== eventId
+      Quasar.Dialog.create({
+        title: this.$t('events.resend_all_emails'),
+        message: this.$t('events.confirm_resend_all'),
+        cancel: true,
+        persistent: true
+      }).onOk(() => {
+        this.resendingAllEmailsFor.push(eventId)
+        LNbits.api
+          .request(
+            'POST',
+            `/events/api/v1/events/${eventId}/email-tickets`,
+            wallet.adminkey,
+            null
           )
-        })
+          .then(response => {
+            Quasar.Notify.create({
+              type: 'positive',
+              message: this.$t('events.bulk_email_sent'),
+              icon: null
+            })
+          })
+          .catch(LNbits.utils.notifyApiError)
+          .finally(() => {
+            this.resendingAllEmailsFor = this.resendingAllEmailsFor.filter(
+              id => id !== eventId
+            )
+          })
+      })
     },
     openEmailAllDialog(eventId) {
       this.emailAllDialog = {

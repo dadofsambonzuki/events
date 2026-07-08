@@ -193,6 +193,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     admin_email_label: 'Email del administrador',
     admin_email_hint: 'Recibir notificaciones por email de ventas de entradas',
     bulk_email_sent: 'Emails de entradas reenviados.',
+    confirm_resend_all: '¿Está seguro de que quiere reenviar todos los emails de entradas para este evento?',
     bulk_message_sent: 'Mensaje enviado a todos los asistentes.',
     quantity: 'Cantidad',
     add_to_basket: 'Añadir a la cesta',

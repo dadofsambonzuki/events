@@ -188,6 +188,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     admin_email_label: 'Admin Email',
     admin_email_hint: 'Receive email notifications for ticket sales',
     bulk_email_sent: 'Ticket emails resent.',
+    confirm_resend_all: 'Are you sure you want to resend all ticket emails for this event?',
     bulk_message_sent: 'Message sent to all attendees.',
     quantity: 'Quantity',
     add_to_basket: 'Add to Basket',

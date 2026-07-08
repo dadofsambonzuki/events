@@ -194,6 +194,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     admin_email_label: 'Admin-E-Mail',
     admin_email_hint: 'E-Mail-Benachrichtigungen über Ticketverkäufe erhalten',
     bulk_email_sent: 'Ticket-E-Mails erneut gesendet.',
+    confirm_resend_all: 'Sind Sie sicher, dass Sie alle Ticket-E-Mails für diese Veranstaltung erneut senden möchten?',
     bulk_message_sent: 'Nachricht an alle Teilnehmer gesendet.',
     quantity: 'Anzahl',
     add_to_basket: 'In den Warenkorb',
