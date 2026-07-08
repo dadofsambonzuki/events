@@ -142,10 +142,11 @@ window.PageEvents = {
            description: '',
            image_url: null,
            price: 0,
-           max_tickets: 0,
+            max_tickets: 0,
             available_from: '',
             available_to: '',
-            sort_order: 0
+            sort_order: 0,
+            active: true
           }
         },
        ticketTypesByEvent: {},
@@ -613,7 +614,8 @@ window.PageEvents = {
           max_tickets: tt?.max_tickets || 0,
           available_from: tt?.available_from || event.event_start_date || '',
           available_to: tt?.available_to || event.event_end_date || '',
-          sort_order: tt?.sort_order || 0
+          sort_order: tt?.sort_order || 0,
+          active: tt?.extra?.active ?? true
         }
       }
     },
@@ -632,7 +634,8 @@ window.PageEvents = {
           max_tickets: 0,
           available_from: '',
           available_to: '',
-          sort_order: 0
+          sort_order: 0,
+          active: true
         }
       }
     },
@@ -647,11 +650,16 @@ window.PageEvents = {
 
       const payload = {
         ...this.ticketTypeDialog.data,
-        event_id: this.ticketTypeDialog.eventId
+        event_id: this.ticketTypeDialog.eventId,
+        extra: {
+          ...this.ticketTypeDialog.data.extra,
+          active: this.ticketTypeDialog.data.active
+        }
       }
       if (!this.ticketTypeDialog.isEdit) {
         delete payload.id
       }
+      delete payload.active
 
       const request = this.ticketTypeDialog.isEdit
         ? LNbits.api.request(

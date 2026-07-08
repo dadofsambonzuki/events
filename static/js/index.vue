@@ -141,6 +141,7 @@
                           square
                           clickable
                           class="q-py-xs"
+                          :class="{ 'text-strikethrough': !(tt.extra?.active ?? true) }"
                           style="height: auto"
                           @click="openTicketTypeDialog(props.row.id, tt)"
                         >
@@ -724,6 +725,11 @@
               ></q-input>
             </div>
           </div>
+          <q-toggle
+            v-model="ticketTypeDialog.data.active"
+            :label="ticketTypeDialog.data.active ? $t('events.active') : $t('events.inactive')"
+            left-label
+          ></q-toggle>
           <div class="row q-mt-lg">
             <q-btn
               v-if="ticketTypeDialog.isEdit"
@@ -1070,3 +1076,8 @@
 
   </div>
 </template>
+<style>
+.text-strikethrough {
+  text-decoration: line-through;
+}
+</style>

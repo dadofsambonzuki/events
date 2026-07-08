@@ -99,6 +99,7 @@ window.PageEventsDisplay = {
         const today = new Date().toISOString().slice(0, 10)
         this.ticketTypes = data.filter(
           tt =>
+            (tt.extra?.active ?? true) &&
             tt.available_from <= today &&
             tt.available_to >= today &&
             (tt.max_tickets === 0 || tt.sold < tt.max_tickets)
