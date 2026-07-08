@@ -724,7 +724,7 @@
               ></q-input>
             </div>
           </div>
-          <div class="row q-mt-lg justify-between">
+          <div class="row q-mt-lg">
             <q-btn
               v-if="ticketTypeDialog.isEdit"
               unelevated
@@ -733,7 +733,7 @@
               @click="deleteTicketType(ticketTypeDialog.data)"
               v-text="$t('delete')"
             ></q-btn>
-            <div class="row q-gutter-sm">
+            <div class="row q-gutter-sm q-ml-auto">
               <q-btn
                 flat
                 color="grey"
@@ -997,7 +997,7 @@
             <template v-slot:after><span>{{ getEventCurrency(editPromoCodeDialog.eventId) }}</span></template>
           </q-input>
 
-          <div class="row q-mt-lg justify-between">
+          <div class="row q-mt-lg">
             <q-btn
               v-if="editPromoCodeDialog.codeIndex >= 0"
               unelevated
@@ -1006,7 +1006,7 @@
               @click="deletePromoCode(editPromoCodeDialog.eventId, editPromoCodeDialog.codeIndex)"
               v-text="$t('delete')"
             ></q-btn>
-            <div class="row q-gutter-sm">
+            <div class="row q-gutter-sm q-ml-auto">
               <q-btn
                 flat
                 color="grey"
