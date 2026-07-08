@@ -728,19 +728,29 @@
               ></q-input>
             </div>
           </div>
-          <div class="row q-mt-lg">
-            <q-btn unelevated color="primary" type="submit">{{
-              ticketTypeDialog.isEdit
-                ? $t('events.update_ticket_type')
-                : $t('events.save_ticket_type')
-            }}</q-btn>
+          <div class="row q-mt-lg justify-between">
             <q-btn
-              flat
-              color="grey"
-              class="q-ml-auto"
-              @click="resetTicketTypeDialog"
-              v-text="$t('cancel')"
+              v-if="ticketTypeDialog.isEdit"
+              unelevated
+              color="negative"
+              icon="delete"
+              @click="deleteTicketType(ticketTypeDialog.data)"
+              v-text="$t('delete')"
             ></q-btn>
+            <div class="row q-gutter-sm">
+              <q-btn
+                flat
+                color="grey"
+                @click="resetTicketTypeDialog"
+                v-text="$t('cancel')"
+              ></q-btn>
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                v-text="$t('events.save')"
+              ></q-btn>
+            </div>
           </div>
         </q-form>
       </q-card>
