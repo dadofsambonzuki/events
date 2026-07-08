@@ -176,7 +176,6 @@ window.PageEvents = {
         },
         discountType: 'percent'
       },
-      newPromoCodeInput: {},
       watchonlyWallets: [],
       paymentMethods: {
         ln: false,
@@ -820,6 +819,21 @@ window.PageEvents = {
         code.discount_fixed != null ? 'fixed' : 'percent'
       this.editPromoCodeDialog.show = true
     },
+    openAddPromoCodeDialog(eventId) {
+      this.editPromoCodeDialog.eventId = eventId
+      this.editPromoCodeDialog.codeIndex = -1
+      this.editPromoCodeDialog.data = {
+        code: '',
+        discount_percent: null,
+        discount_fixed: null,
+        active: true,
+        combinable: true,
+        max_uses: null,
+        used_count: 0
+      }
+      this.editPromoCodeDialog.discountType = 'percent'
+      this.editPromoCodeDialog.show = true
+    },
     saveEditPromoCode() {
       const {eventId, codeIndex, data, discountType} = this.editPromoCodeDialog
       const event = _.findWhere(this.events, {id: eventId})
@@ -894,58 +908,6 @@ window.PageEvents = {
             icon: null
           })
           this.editPromoCodeDialog.show = false
-        })
-        .catch(LNbits.utils.notifyApiError)
-    },
-    addPromoCodeInline(eventId) {
-      const code = (this.newPromoCodeInput[eventId] || '').trim().toUpperCase()
-      if (!code) return
-
-      const event = _.findWhere(this.events, {id: eventId})
-      if (!event) return
-      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
-      if (!wallet) return
-
-      const codes = [...(event.extra?.promo_codes || [])]
-      if (codes.find(c => c.code === code)) {
-        Quasar.Notify.create({
-          type: 'warning',
-          message: this.$t('events.promo_code_exists'),
-          icon: null
-        })
-        return
-      }
-
-      codes.push({
-        code,
-        discount_percent: null,
-        discount_fixed: null,
-        active: true,
-        combinable: true,
-        max_uses: null,
-        used_count: 0
-      })
-
-      const payload = {
-        ...event,
-        extra: {
-          ...event.extra,
-          promo_codes: codes
-        }
-      }
-
-      LNbits.api
-        .request('PUT', '/events/api/v1/events/' + eventId, wallet.adminkey, payload)
-        .then(response => {
-          this.events = this.events.map(e =>
-            e.id === eventId ? response.data : e
-          )
-          this.newPromoCodeInput[eventId] = ''
-          Quasar.Notify.create({
-            type: 'positive',
-            message: this.$t('events.promo_codes_updated'),
-            icon: null
-          })
         })
         .catch(LNbits.utils.notifyApiError)
     },

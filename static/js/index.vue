@@ -154,11 +154,19 @@
                       </div>
                     </div>
 
-                    <div class="row items-center q-mb-md">
+                    <div class="row items-center q-gutter-x-sm q-mb-md">
                       <div
                         class="text-subtitle1"
                         v-text="$t('events.promo_codes')"
                       ></div>
+                      <q-btn
+                        unelevated
+                        dense
+                        size="sm"
+                        icon="add"
+                        color="primary"
+                        @click="openAddPromoCodeDialog(props.row.id)"
+                      ></q-btn>
                     </div>
                     <div class="column q-gutter-y-sm">
                       <div
@@ -190,26 +198,6 @@
                             ></span>
                           </q-chip>
                         </div>
-                      </div>
-                      <div class="row items-center q-gutter-x-sm">
-                        <q-input
-                          dense
-                          filled
-                          v-model.trim="newPromoCodeInput[props.row.id]"
-                          :placeholder="$t('events.add_promo_code')"
-                          style="max-width: 250px"
-                          @keyup.enter="addPromoCodeInline(props.row.id)"
-                        >
-                          <template v-slot:after>
-                            <q-btn
-                              unelevated
-                              dense
-                              color="primary"
-                              icon="add"
-                              @click="addPromoCodeInline(props.row.id)"
-                            ></q-btn>
-                          </template>
-                        </q-input>
                       </div>
                     </div>
 
@@ -926,7 +914,7 @@
         <q-form @submit="saveEditPromoCode" class="q-gutter-md">
           <div
             class="text-subtitle1"
-            v-text="$t('events.edit_promo_code')"
+            v-text="editPromoCodeDialog.codeIndex === -1 ? $t('events.add_promo_code') : $t('events.edit_promo_code')"
           ></div>
 
           <q-input

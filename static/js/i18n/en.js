@@ -4,7 +4,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     events_title: 'Events',
     export_csv: 'Export to CSV',
     tickets_title: 'Tickets',
-    promo_codes: 'Promo codes',
+    promo_codes: 'Promo Codes',
 	no_promo_codes: 'No promo codes for this event.',
     resend_ticket_email: 'Resend ticket email',
     confirm_onchain_payment: 'Confirm onchain payment',
