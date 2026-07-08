@@ -66,6 +66,7 @@ class EventExtra(BaseModel):
     payment_methods: list[str] = Field(default_factory=list)
     ln_wallet_id: str | None = None
     onchain_wallet_id: str | None = None
+    fiat_provider: str | None = None
 
 
 class CreateEvent(BaseModel):

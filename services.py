@@ -248,6 +248,8 @@ async def create_basket_with_charge(
             charge_data["lnbitswallet"] = event.extra.ln_wallet_id or event.wallet
         if "onchain" in methods:
             charge_data["onchainwallet"] = event.extra.onchain_wallet_id
+        if "fiat" in methods:
+            charge_data["fiat_provider"] = data.fiat_provider
 
         charge = None
         last_error = None
@@ -268,6 +270,8 @@ async def create_basket_with_charge(
                     charge_data["lnbitswallet"] = event.extra.ln_wallet_id or event.wallet
                 if "onchain" in tried_methods:
                     charge_data["onchainwallet"] = event.extra.onchain_wallet_id
+                if "fiat" in tried_methods:
+                    charge_data["fiat_provider"] = data.fiat_provider
 
         if charge is None:
             raise ValueError(

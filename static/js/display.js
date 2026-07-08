@@ -216,7 +216,7 @@ window.PageEventsDisplay = {
           items,
           promo_codes,
           payment_method: null,
-          fiat_provider: null,
+          fiat_provider: this.event?.extra?.fiat_provider || null,
           nostr_identifier: null,
           refund_address: refundAddr || null
         }

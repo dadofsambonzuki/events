@@ -401,6 +401,9 @@ window.PageEvents = {
         this.paymentMethods.ln = pm.includes('ln')
         this.paymentMethods.onchain = pm.includes('onchain')
         this.paymentMethods.fiat = pm.includes('fiat')
+        if (!data.extra.fiat_provider) {
+          data.extra.fiat_provider = ''
+        }
       } else {
         this.formDialog.data = {
           currency: 'sats',
@@ -416,7 +419,8 @@ window.PageEvents = {
             notification_body: '',
             payment_methods: [],
             ln_wallet_id: null,
-            onchain_wallet_id: null
+            onchain_wallet_id: null,
+            fiat_provider: ''
           }
         }
         this.paymentMethods.ln = false
@@ -441,7 +445,8 @@ window.PageEvents = {
           notification_body: '',
           payment_methods: [],
           ln_wallet_id: null,
-          onchain_wallet_id: null
+          onchain_wallet_id: null,
+          fiat_provider: ''
         }
       }
       this.paymentMethods.ln = false

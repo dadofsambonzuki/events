@@ -40,7 +40,8 @@ window.i18n.global.mergeLocaleMessage('de', {
     ln_wallet_label: 'LN Wallet',
     onchain_wallet_label: 'Onchain Wallet',
     onchain_disabled_hint: 'Die Onchain Wallet (WatchOnly) Erweiterung muss aktiviert sein und eine Wallet haben.',
-    fiat_provider_hint: 'Fiat-Anbieter müssen in den SatsPay-Servereinstellungen konfiguriert werden.',
+    fiat_provider_hint: 'Fiat-Anbieter müssen in den LNbits-Servereinstellungen konfiguriert und dein Benutzer autorisiert sein.',
+    fiat_provider_label: 'Fiat-Anbieter',
   
     conditional_events_title: 'Bedingte Veranstaltungen',
     conditional_events_desc:

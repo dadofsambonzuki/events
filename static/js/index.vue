@@ -500,8 +500,17 @@
                 ></q-checkbox>
               </div>
               <div class="col">
+                <q-select
+                  v-if="paymentMethods.fiat && g.user.fiat_providers && g.user.fiat_providers.length"
+                  filled
+                  dense
+                  emit-value
+                  v-model="formDialog.data.extra.fiat_provider"
+                  :options="g.user.fiat_providers"
+                  :label="$t('events.fiat_provider_label')"
+                ></q-select>
                 <span
-                  v-if="paymentMethods.fiat"
+                  v-if="paymentMethods.fiat && (!g.user.fiat_providers || !g.user.fiat_providers.length)"
                   class="text-caption"
                   v-text="$t('events.fiat_provider_hint')"
                 ></span>
