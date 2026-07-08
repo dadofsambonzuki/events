@@ -681,8 +681,8 @@
             :label="$t('events.price_label', {currency: getEventCurrency(ticketTypeDialog.eventId)})"
             min="0"
           ></q-input>
-          <div class="row q-col-gutter-sm">
-            <div class="col">
+          <div class="row">
+            <div class="col q-mr-xs">
               <q-input
                 filled
                 dense
@@ -704,8 +704,8 @@
               ></q-input>
             </div>
           </div>
-          <div class="row q-col-gutter-sm">
-            <div class="col">
+          <div class="row">
+            <div class="col q-mr-xs">
               <q-input
                 filled
                 dense
@@ -930,8 +930,8 @@
             :label="$t('events.promo_code_label')"
           ></q-input>
 
-          <div class="row q-col-gutter-sm">
-            <div class="col-6">
+          <div class="row">
+            <div class="col-6 q-mr-xs">
               <q-toggle
                 v-model="editPromoCodeDialog.data.active"
                 :label="editPromoCodeDialog.data.active ? $t('events.active') : $t('events.inactive')"
@@ -997,6 +997,7 @@
 
           <div class="row q-mt-lg justify-between">
             <q-btn
+              v-if="editPromoCodeDialog.codeIndex >= 0"
               unelevated
               color="negative"
               icon="delete"
