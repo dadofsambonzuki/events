@@ -993,7 +993,9 @@
             type="number"
             :label="$t('events.discount_fixed_label')"
             min="0"
-          ></q-input>
+          >
+            <template v-slot:after><span>{{ getEventCurrency(editPromoCodeDialog.eventId) }}</span></template>
+          </q-input>
 
           <div class="row q-mt-lg justify-between">
             <q-btn
