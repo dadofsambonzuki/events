@@ -672,19 +672,15 @@
             v-model.trim="ticketTypeDialog.data.image_url"
             type="url"
             :label="$t('events.tt_image_url_label')"
+          >          </q-input>
+          <q-input
+            filled
+            dense
+            v-model.number="ticketTypeDialog.data.price"
+            type="number"
+            :label="$t('events.price_label', {currency: getEventCurrency(ticketTypeDialog.eventId)})"
+            min="0"
           ></q-input>
-          <div class="row q-col-gutter-sm">
-            <div class="col">
-              <q-input
-                filled
-                dense
-                v-model.number="ticketTypeDialog.data.price"
-                type="number"
-                :label="$t('events.price_label', {currency: getEventCurrency(ticketTypeDialog.eventId)})"
-                min="0"
-              ></q-input>
-            </div>
-          </div>
           <div class="row q-col-gutter-sm">
             <div class="col">
               <q-input
