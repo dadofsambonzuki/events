@@ -300,6 +300,7 @@ async def create_basket_with_charge(
                     "nostr_identifier": data.nostr_identifier,
                     "ticket_base_url": base_url,
                     "sats_paid": totals.total,
+                    "satspay_charge_id": basket.satspay_charge_id,
                 },
                 ticket_type_id=tt.id,
                 basket_id=basket_id,

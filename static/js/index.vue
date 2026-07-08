@@ -321,6 +321,18 @@
                     color="pink"
                   ></q-btn>
                 </q-td>
+
+                <q-td auto-width>
+                  <a
+                    v-if="props.row.extra?.satspay_charge_id"
+                    :href="'/satspay/' + props.row.extra.satspay_charge_id"
+                    target="_blank"
+                    class="text-secondary"
+                  >
+                    {{ shortenId(props.row.extra.satspay_charge_id) }}
+                  </a>
+                  <span v-else class="text-grey">—</span>
+                </q-td>
               </q-tr>
             </template>
           </q-table>

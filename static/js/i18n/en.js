@@ -97,6 +97,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     col_registered: 'Registered',
     col_nostr: 'Nostr',
     col_promo_code: 'Promo Code',
+    col_satspay: 'Payment',
     col_yes: 'Yes',
     col_no: 'No',
     submit: 'Submit',

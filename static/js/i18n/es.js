@@ -101,6 +101,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     col_registered: 'Registrado',
     col_nostr: 'Nostr',
     col_promo_code: 'Código promocional',
+    col_satspay: 'Pago',
     col_yes: 'Sí',
     col_no: 'No',
     submit: 'Enviar',

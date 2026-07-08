@@ -101,6 +101,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     col_registered: 'Registriert',
     col_nostr: 'Nostr',
     col_promo_code: 'Promo-Code',
+    col_satspay: 'Zahlung',
     col_yes: 'Ja',
     col_no: 'Nein',
     submit: 'Absenden',
