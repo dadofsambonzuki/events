@@ -399,6 +399,12 @@ async def _increment_promo_uses_from_basket(
         await update_event(event)
 
 
+async def toggle_ticket_deactivation(ticket: Ticket) -> Ticket:
+    ticket.extra.deactivated = not ticket.extra.deactivated
+    await update_ticket(ticket)
+    return ticket
+
+
 async def set_ticket_paid(ticket: Ticket) -> Ticket:
     if ticket.paid:
         return ticket

@@ -159,33 +159,18 @@
                         class="text-subtitle1"
                         v-text="$t('events.promo_codes')"
                       ></div>
-                      <q-btn
-                        round
-                        dense
-                        unelevated
-                        color="primary"
-                        icon="edit"
-                        class="q-ml-sm"
-                        @click="openPromoCodesDialog(props.row)"
-                      ></q-btn>
                     </div>
-                    <div class="column">
+                    <div class="column q-gutter-y-sm">
                       <div
-                        v-if="
-                          (props.row.extra.promo_codes || []).filter(
-                            code => code.active
-                          ).length == 0
-                        "
+                        v-if="(props.row.extra.promo_codes || []).length == 0"
                         class="text-caption"
-                        v-text="$t('events.no_active_promo_codes')"
+                        v-text="$t('events.no_promo_codes')"
                       ></div>
                       <div class="row q-gutter-sm">
                         <div
                           v-for="(
                             code, index
-                          ) in (props.row.extra.promo_codes || []).filter(
-                            code => code.active
-                          )"
+                          ) in (props.row.extra.promo_codes || [])"
                           :key="index"
                           class="col-auto"
                         >
@@ -194,7 +179,8 @@
                             clickable
                             class="q-py-xs"
                             style="height: auto"
-                            @click="utils.copyText(code.code.toUpperCase())"
+                            :class="{ 'text-strikethrough': !code.active }"
+                            @click="openEditPromoCodeDialog(props.row.id, index)"
                           >
                             <span
                               style="white-space: normal; line-height: 1.3"
@@ -204,6 +190,26 @@
                             ></span>
                           </q-chip>
                         </div>
+                      </div>
+                      <div class="row items-center q-gutter-x-sm">
+                        <q-input
+                          dense
+                          filled
+                          v-model.trim="newPromoCodeInput[props.row.id]"
+                          :placeholder="$t('events.add_promo_code')"
+                          style="max-width: 250px"
+                          @keyup.enter="addPromoCodeInline(props.row.id)"
+                        >
+                          <template v-slot:after>
+                            <q-btn
+                              unelevated
+                              dense
+                              color="primary"
+                              icon="add"
+                              @click="addPromoCodeInline(props.row.id)"
+                            ></q-btn>
+                          </template>
+                        </q-input>
                       </div>
                     </div>
 
@@ -303,6 +309,21 @@
                   >
                     <q-tooltip>
                       <span v-text="$t('events.resend_ticket_email')"></span>
+                    </q-tooltip>
+                  </q-btn>
+                </q-td>
+
+                <q-td auto-width>
+                  <q-btn
+                    flat
+                    dense
+                    size="xs"
+                    @click="toggleTicketDeactivation(props.row)"
+                    :icon="props.row.extra?.deactivated ? 'check_circle' : 'block'"
+                    :color="props.row.extra?.deactivated ? 'positive' : 'orange'"
+                  >
+                    <q-tooltip>
+                      <span v-text="props.row.extra?.deactivated ? $t('events.activate_ticket') : $t('events.deactivate_ticket')"></span>
                     </q-tooltip>
                   </q-btn>
                 </q-td>
@@ -895,6 +916,114 @@
               @click="resetPromoCodesDialog"
               v-text="$t('cancel')"
             ></q-btn>
+          </div>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="editPromoCodeDialog.show" position="top">
+      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card" style="max-width: 500px">
+        <q-form @submit="saveEditPromoCode" class="q-gutter-md">
+          <div
+            class="text-subtitle1"
+            v-text="$t('events.edit_promo_code')"
+          ></div>
+
+          <q-input
+            filled
+            dense
+            v-model.trim="editPromoCodeDialog.data.code"
+            type="text"
+            :label="$t('events.promo_code_label')"
+          ></q-input>
+
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <q-toggle
+                v-model="editPromoCodeDialog.data.active"
+                :label="editPromoCodeDialog.data.active ? $t('events.active') : $t('events.inactive')"
+                left-label
+                color="positive"
+              ></q-toggle>
+            </div>
+            <div class="col-6">
+              <q-toggle
+                v-model="editPromoCodeDialog.data.combinable"
+                :label="$t('events.promo_combinable')"
+                left-label
+              ></q-toggle>
+            </div>
+          </div>
+
+          <q-input
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.max_uses"
+            type="number"
+            :label="$t('events.promo_max_uses')"
+            hint="0 = unlimited"
+            min="0"
+          ></q-input>
+
+          <div>
+            <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>
+            <q-btn-toggle
+              v-model="editPromoCodeDialog.discountType"
+              toggle-color="primary"
+              :options="[
+                {label: '% ' + $t('events.discount_percent_label'), value: 'percent'},
+                {label: ' ' + $t('events.discount_fixed_label'), value: 'fixed'}
+              ]"
+              spread
+              no-caps
+              size="sm"
+            ></q-btn-toggle>
+          </div>
+
+          <q-input
+            v-if="editPromoCodeDialog.discountType !== 'fixed'"
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.discount_percent"
+            type="number"
+            :label="$t('events.discount_percent_label')"
+            min="0"
+            max="100"
+          >
+            <template v-slot:after><span>%</span></template>
+          </q-input>
+          <q-input
+            v-else
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.discount_fixed"
+            type="number"
+            :label="$t('events.discount_fixed_label')"
+            min="0"
+          ></q-input>
+
+          <div class="row q-mt-lg justify-between">
+            <q-btn
+              unelevated
+              color="negative"
+              icon="delete"
+              @click="deletePromoCode(editPromoCodeDialog.eventId, editPromoCodeDialog.codeIndex)"
+              v-text="$t('delete')"
+            ></q-btn>
+            <div class="row q-gutter-sm">
+              <q-btn
+                flat
+                color="grey"
+                @click="editPromoCodeDialog.show = false"
+                v-text="$t('cancel')"
+              ></q-btn>
+              <q-btn
+                unelevated
+                color="primary"
+                type="submit"
+                v-text="$t('events.save_promo_codes')"
+              ></q-btn>
+            </div>
           </div>
         </q-form>
       </q-card>

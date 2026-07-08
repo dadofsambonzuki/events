@@ -133,6 +133,7 @@ class TicketExtra(BaseModel):
     email_notification_sent: bool = False
     nostr_notification_sent: bool = False
     refunded: bool = False
+    deactivated: bool = False
     satspay_charge_id: str | None = None
 
 

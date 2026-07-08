@@ -73,6 +73,12 @@ window.PageEvents = {
           field: row => row.extra?.nostr_identifier || ''
         },
         {
+          name: 'deactivated',
+          align: 'left',
+          label: this.$t('events.col_deactivated'),
+          field: row => row.extra?.deactivated ? this.$t('events.col_yes') : this.$t('events.col_no')
+        },
+        {
           name: 'promo_code',
           align: 'left',
           label: this.$t('events.col_promo_code'),
@@ -155,6 +161,22 @@ window.PageEvents = {
         }
       },
       promoDiscountTypes: {},
+      editPromoCodeDialog: {
+        show: false,
+        eventId: null,
+        codeIndex: -1,
+        data: {
+          code: '',
+          discount_percent: null,
+          discount_fixed: null,
+          active: true,
+          combinable: true,
+          max_uses: null,
+          used_count: 0
+        },
+        discountType: 'percent'
+      },
+      newPromoCodeInput: {},
       watchonlyWallets: [],
       paymentMethods: {
         ln: false,
@@ -321,11 +343,34 @@ window.PageEvents = {
           }
         })
         .catch(LNbits.utils.notifyApiError)
-        .finally(() => {
+          .finally(() => {
           this.resendingTicketEmails = this.resendingTicketEmails.filter(
             ticketId => ticketId !== ticket.id
           )
         })
+    },
+    toggleTicketDeactivation(ticket) {
+      const wallet = _.findWhere(this.g.user.wallets, {id: ticket.wallet})
+      if (!wallet) return
+      LNbits.api
+        .request(
+          'PUT',
+          '/events/api/v1/tickets/' + ticket.id + '/deactivate',
+          wallet.adminkey
+        )
+        .then(response => {
+          const updated = response.data
+          const action = updated.extra?.deactivated ? 'deactivated' : 'activated'
+          this.tickets = this.tickets.map(t =>
+            t.id === ticket.id ? updated : t
+          )
+          Quasar.Notify.create({
+            type: 'positive',
+            message: `Ticket ${action}.`,
+            icon: null
+          })
+        })
+        .catch(LNbits.utils.notifyApiError)
     },
     exportticketsCSV() {
       LNbits.utils.exportCSV(this.ticketsTable.columns, this.allPaidTickets)
@@ -760,6 +805,147 @@ window.PageEvents = {
             icon: null
           })
           this.resetPromoCodesDialog()
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    openEditPromoCodeDialog(eventId, codeIndex) {
+      const event = _.findWhere(this.events, {id: eventId})
+      if (!event) return
+      const code = event.extra?.promo_codes?.[codeIndex]
+      if (!code) return
+      this.editPromoCodeDialog.eventId = eventId
+      this.editPromoCodeDialog.codeIndex = codeIndex
+      this.editPromoCodeDialog.data = {...code}
+      this.editPromoCodeDialog.discountType =
+        code.discount_fixed != null ? 'fixed' : 'percent'
+      this.editPromoCodeDialog.show = true
+    },
+    saveEditPromoCode() {
+      const {eventId, codeIndex, data, discountType} = this.editPromoCodeDialog
+      const event = _.findWhere(this.events, {id: eventId})
+      if (!event) return
+      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
+      if (!wallet) return
+
+      const code = {...data}
+      if (discountType === 'fixed') {
+        code.discount_percent = null
+      } else {
+        code.discount_fixed = null
+      }
+      code.code = code.code.trim().toUpperCase()
+
+      const codes = [...(event.extra?.promo_codes || [])]
+      if (codeIndex >= 0 && codeIndex < codes.length) {
+        codes[codeIndex] = code
+      } else {
+        codes.push(code)
+      }
+
+      const payload = {
+        ...event,
+        extra: {
+          ...event.extra,
+          promo_codes: codes
+        }
+      }
+
+      LNbits.api
+        .request('PUT', '/events/api/v1/events/' + eventId, wallet.adminkey, payload)
+        .then(response => {
+          this.events = this.events.map(e =>
+            e.id === eventId ? response.data : e
+          )
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('events.promo_codes_updated'),
+            icon: null
+          })
+          this.editPromoCodeDialog.show = false
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    deletePromoCode(eventId, codeIndex) {
+      const event = _.findWhere(this.events, {id: eventId})
+      if (!event) return
+      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
+      if (!wallet) return
+
+      const codes = [...(event.extra?.promo_codes || [])]
+      codes.splice(codeIndex, 1)
+
+      const payload = {
+        ...event,
+        extra: {
+          ...event.extra,
+          promo_codes: codes
+        }
+      }
+
+      LNbits.api
+        .request('PUT', '/events/api/v1/events/' + eventId, wallet.adminkey, payload)
+        .then(response => {
+          this.events = this.events.map(e =>
+            e.id === eventId ? response.data : e
+          )
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('events.promo_codes_updated'),
+            icon: null
+          })
+          this.editPromoCodeDialog.show = false
+        })
+        .catch(LNbits.utils.notifyApiError)
+    },
+    addPromoCodeInline(eventId) {
+      const code = (this.newPromoCodeInput[eventId] || '').trim().toUpperCase()
+      if (!code) return
+
+      const event = _.findWhere(this.events, {id: eventId})
+      if (!event) return
+      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
+      if (!wallet) return
+
+      const codes = [...(event.extra?.promo_codes || [])]
+      if (codes.find(c => c.code === code)) {
+        Quasar.Notify.create({
+          type: 'warning',
+          message: this.$t('events.promo_code_exists'),
+          icon: null
+        })
+        return
+      }
+
+      codes.push({
+        code,
+        discount_percent: null,
+        discount_fixed: null,
+        active: true,
+        combinable: true,
+        max_uses: null,
+        used_count: 0
+      })
+
+      const payload = {
+        ...event,
+        extra: {
+          ...event.extra,
+          promo_codes: codes
+        }
+      }
+
+      LNbits.api
+        .request('PUT', '/events/api/v1/events/' + eventId, wallet.adminkey, payload)
+        .then(response => {
+          this.events = this.events.map(e =>
+            e.id === eventId ? response.data : e
+          )
+          this.newPromoCodeInput[eventId] = ''
+          Quasar.Notify.create({
+            type: 'positive',
+            message: this.$t('events.promo_codes_updated'),
+            icon: null
+          })
         })
         .catch(LNbits.utils.notifyApiError)
     },

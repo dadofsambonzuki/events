@@ -12,6 +12,12 @@
               v-text="$t('events.ticket_instructions')"
             ></h5>
             <div v-if="ticket" class="row justify-center q-gutter-sm q-mb-md">
+              <q-badge
+                v-if="ticket.extra?.deactivated"
+                color="negative"
+                class="q-pa-sm"
+                v-text="$t('events.ticket_deactivated')"
+              ></q-badge>
               <q-btn
                 unelevated
                 :color="ticket.paid ? 'positive' : 'negative'"

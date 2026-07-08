@@ -65,6 +65,7 @@ from .services import (
     resend_ticket_email_notification,
     send_bulk_message,
     send_bulk_ticket_emails,
+    toggle_ticket_deactivation,
 )
 
 events_api_router = APIRouter(prefix="/api/v1")
@@ -591,6 +592,20 @@ async def api_ticket_delete(
     await delete_ticket(ticket_id)
 
 
+@events_api_router.put("/tickets/{ticket_id}/deactivate")
+async def api_ticket_deactivate(
+    ticket_id: str, wallet: WalletTypeInfo = Depends(require_admin_key)
+) -> Ticket:
+    ticket = await get_ticket(ticket_id)
+    if not ticket:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Ticket does not exist."
+        )
+    if ticket.wallet != wallet.wallet.id:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your ticket.")
+    return await toggle_ticket_deactivation(ticket)
+
+
 @events_api_router.put("/tickets/register/{ticket_id}")
 async def api_event_register_ticket(ticket_id: str) -> Ticket:
     ticket = await get_ticket(ticket_id)
@@ -601,6 +616,10 @@ async def api_event_register_ticket(ticket_id: str) -> Ticket:
     if not ticket.paid:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Ticket not paid for."
+        )
+    if ticket.extra.deactivated:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Ticket has been deactivated."
         )
     if ticket.registered:
         raise HTTPException(
