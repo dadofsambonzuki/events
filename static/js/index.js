@@ -373,7 +373,7 @@ window.PageEvents = {
         .catch(LNbits.utils.notifyApiError)
     },
     exportticketsCSV() {
-      LNbits.utils.exportCSV(this.ticketsTable.columns, this.allPaidTickets)
+      LNbits.utils.exportCSV(this.ticketsColumns, this.allPaidTickets)
     },
     getEvents() {
       LNbits.api
@@ -556,7 +556,7 @@ window.PageEvents = {
         })
     },
     exporteventsCSV() {
-      LNbits.utils.exportCSV(this.eventsTable.columns, this.events)
+      LNbits.utils.exportCSV(this.eventsColumns, this.events)
     },
     async checkCanceledEvents() {
       const events = this.events
