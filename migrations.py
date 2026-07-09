@@ -237,6 +237,7 @@ async def m009_ticket_types_and_baskets(db):
     """)
     for alter in [
         "ALTER TABLE events.events ADD COLUMN admin_email TEXT;",
+        "ALTER TABLE events.events DROP COLUMN closing_date;",
         "ALTER TABLE events.ticket ADD COLUMN ticket_type_id TEXT;",
         "ALTER TABLE events.ticket ADD COLUMN basket_id TEXT;",
     ]:
