@@ -401,7 +401,9 @@ window.PageEvents = {
     },
     sendEventData() {
       const data = this.formDialog.data
-      data.wallet = data.extra?.ln_wallet_id || this.g.user.wallets?.[0]?.id
+      if (!data.id) {
+        data.wallet = data.extra?.ln_wallet_id || this.g.user.wallets?.[0]?.id
+      }
       const wallet = _.findWhere(this.g.user.wallets, {id: data.wallet})
       if (this.paymentMethods.ln && !data.extra?.ln_wallet_id) {
         this.$q.notify({message: 'Select an LN wallet for Lightning payments.', type: 'negative'})
