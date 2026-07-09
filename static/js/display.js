@@ -16,6 +16,8 @@ window.PageEventsDisplay = {
       submitting: false,
       checkoutLoading: false,
       nostrIdentifier: '',
+      attendeeFields: {},
+      copyDetailsToAll: {},
       ticketLink: {
         show: false,
         data: {

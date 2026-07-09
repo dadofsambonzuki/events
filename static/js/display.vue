@@ -7,6 +7,8 @@
           v-if="event.banner"
           :src="event.banner"
           transition="slide-up"
+          style="max-height: 300px"
+          :img-style="{ objectFit: 'contain' }"
         ></q-img>
         <q-card-section class="q-pa-none">
           <h3 class="q-my-none q-pa-lg" v-text="event.name"></h3>
