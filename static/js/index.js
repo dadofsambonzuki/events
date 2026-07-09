@@ -432,6 +432,9 @@ window.PageEvents = {
       if (this.paymentMethods.onchain) methods.push('onchain')
       if (this.paymentMethods.fiat) methods.push('fiat')
       data.extra.payment_methods = methods
+      if (!data.id) {
+        data.closing_date = data.event_end_date
+      }
       if (data.id) {
         this.updateEvent(wallet, data)
       } else {

@@ -73,6 +73,7 @@ class CreateEvent(BaseModel):
     wallet: str
     name: str
     info: str
+    closing_date: str
     event_start_date: str
     event_end_date: str
     currency: str = "sat"
@@ -91,6 +92,7 @@ class Event(BaseModel):
     name: str
     info: str
     canceled: bool = False
+    closing_date: str
     event_start_date: str
     event_end_date: str
     currency: str
@@ -110,6 +112,7 @@ class PublicEvent(BaseModel):
     name: str
     info: str
     canceled: bool
+    closing_date: str
     event_start_date: str
     event_end_date: str
     currency: str
