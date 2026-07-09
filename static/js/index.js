@@ -84,13 +84,7 @@ window.PageEvents = {
           label: this.$t('events.col_promo_code'),
           field: row => row.extra.applied_promo_code || ''
         },
-        {name: 'id', align: 'left', label: this.$t('id'), field: 'id'},
-        {
-          name: 'satspay_charge_id',
-          align: 'left',
-          label: this.$t('events.col_satspay'),
-          field: row => row.extra.satspay_charge_id || ''
-        }
+        {name: 'id', align: 'left', label: this.$t('id'), field: 'id'}
       ]
     }
   },
