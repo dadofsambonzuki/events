@@ -292,7 +292,7 @@ async def create_basket_with_charge(
                 wallet=event.wallet,
                 event=event.id,
                 name=data.name,
-                email=data.email,
+        email=data.email or '',
                 extra={
                     "ticket_type_id": tt.id,
                     "ticket_wave_title": tt.name,
