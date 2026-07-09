@@ -265,10 +265,11 @@
                 <q-th auto-width></q-th>
                 <q-th auto-width></q-th>
                 <q-th auto-width></q-th>
+                <q-th auto-width></q-th>
+                <q-th auto-width></q-th>
                 <q-th v-for="col in props.cols" :key="col.name" :props="props">
                   <span v-text="col.label"></span>
                 </q-th>
-                <q-th auto-width></q-th>
                 <q-th auto-width></q-th>
               </q-tr>
             </template>
@@ -318,10 +319,6 @@
                   </q-btn>
                 </q-td>
 
-                <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                  <span v-text="col.value"></span>
-                </q-td>
-
                 <q-td auto-width>
                   <q-btn
                     flat
@@ -331,6 +328,10 @@
                     icon="cancel"
                     color="pink"
                   ></q-btn>
+                </q-td>
+
+                <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                  <span v-text="col.value"></span>
                 </q-td>
 
                 <q-td auto-width>
