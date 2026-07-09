@@ -198,9 +198,10 @@ async def m008_add_fiat_currency(db):
 
 
 async def m009_ticket_types_and_baskets(db):
-    await db.execute(
-        """
-        CREATE TABLE events.ticket_types (
+    from sqlalchemy.exc import OperationalError
+
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS events.ticket_types (
             id TEXT PRIMARY KEY,
             event_id TEXT NOT NULL,
             name TEXT NOT NULL,
@@ -214,12 +215,9 @@ async def m009_ticket_types_and_baskets(db):
             sort_order INTEGER NOT NULL DEFAULT 0,
             extra TEXT
         );
-    """
-    )
-
-    await db.execute(
-        """
-        CREATE TABLE events.baskets (
+    """)
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS events.baskets (
             id TEXT PRIMARY KEY,
             event_id TEXT NOT NULL,
             wallet TEXT NOT NULL,
@@ -236,12 +234,16 @@ async def m009_ticket_types_and_baskets(db):
         + db.timestamp_now
         + """
         );
-    """
-    )
-
-    await db.execute("ALTER TABLE events.events ADD COLUMN admin_email TEXT;")
-    await db.execute("ALTER TABLE events.ticket ADD COLUMN ticket_type_id TEXT;")
-    await db.execute("ALTER TABLE events.ticket ADD COLUMN basket_id TEXT;")
+    """)
+    for alter in [
+        "ALTER TABLE events.events ADD COLUMN admin_email TEXT;",
+        "ALTER TABLE events.ticket ADD COLUMN ticket_type_id TEXT;",
+        "ALTER TABLE events.ticket ADD COLUMN basket_id TEXT;",
+    ]:
+        try:
+            await db.execute(alter)
+        except OperationalError:
+            pass
 
     import json
 
@@ -261,31 +263,35 @@ async def m009_ticket_types_and_baskets(db):
             await db.execute(
                 """
                 INSERT INTO events.ticket_types (
-                    id, event_id, name, description,                     image_url, price, max_tickets, sold,
+                    id, event_id, name, description,
+                    image_url, price, max_tickets, sold,
                     available_from, available_to,
                     sort_order, extra
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (:id, :event_id, :name, :description,
+                    :image_url, :price, :max_tickets, :sold,
+                    :available_from, :available_to,
+                    :sort_order, :extra)
                 """,
-                (
-                    wave.get("id", ""),
-                    event_id,
-                    wave.get("title", "General Admission"),
-                    "",
-                    wave.get("ticket_image_id"),
-                    wave.get("price_per_ticket", 0),
-                    wave.get("amount_tickets", 0),
-                    0,
-                    wave.get("opening_date", ""),
-                    wave.get("closing_date", ""),
-                    sort_order,
-                    "{}",
-                ),
+                {
+                    "id": wave.get("id", ""),
+                    "event_id": event_id,
+                    "name": wave.get("title", "General Admission"),
+                    "description": "",
+                    "image_url": wave.get("ticket_image_id"),
+                    "price": wave.get("price_per_ticket", 0),
+                    "max_tickets": wave.get("amount_tickets", 0),
+                    "sold": 0,
+                    "available_from": wave.get("opening_date", ""),
+                    "available_to": wave.get("closing_date", ""),
+                    "sort_order": sort_order,
+                    "extra": "{}",
+                },
             )
             sort_order += 1
 
         extra.pop("ticket_waves", None)
         await db.execute(
-            "UPDATE events.events SET extra = ? WHERE id = ?",
-            (json.dumps(extra), event_id),
+            "UPDATE events.events SET extra = :extra WHERE id = :id",
+            {"extra": json.dumps(extra), "id": event_id},
         )
