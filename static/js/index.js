@@ -457,6 +457,7 @@ window.PageEvents = {
         }
       } else {
         this.formDialog.data = {
+          wallet: this.g.user.wallets?.[0]?.id,
           currency: 'sats',
           allow_fiat: false,
           fiat_currency: 'GBP',
@@ -483,6 +484,7 @@ window.PageEvents = {
     resetEventDialog() {
       this.formDialog.show = false
       this.formDialog.data = {
+        wallet: this.g.user.wallets?.[0]?.id,
         currency: 'sats',
         allow_fiat: false,
         fiat_currency: 'GBP',
