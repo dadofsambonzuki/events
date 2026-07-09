@@ -112,11 +112,10 @@ window.i18n.global.mergeLocaleMessage('es', {
     buy_ticket: 'Comprar entrada',
     your_name_label: 'Tu nombre (opcional)',
     your_email_label: 'Tu email',
-    your_email_delivery_label: 'Tu email (entrega de entrada)',
+    your_email_delivery_label: 'Su email (entrega de tickets, obligatorio)',
     required: '* Obligatorio',
-    nostr_nip05_label: '(opcional) Nostr NIP-05',
-    nostr_nip05_hint:
-      'Si se proporciona, enviaremos el enlace de tu entrada por DM tras el pago.',
+    nostr_nip05_label: 'Su Nostr NIP-05 (entrega de tickets, opcional)',
+    nostr_nip05_hint: '',
     refund_label: 'Lnaddress o LNURL de reembolso',
     refund_hint:
       'Si no se alcanzan las entradas mínimas ({min_tickets}), se enviará un reembolso.',

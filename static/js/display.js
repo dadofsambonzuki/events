@@ -15,6 +15,7 @@ window.PageEventsDisplay = {
       basketItems: [],
       submitting: false,
       checkoutLoading: false,
+      nostrIdentifier: '',
       ticketLink: {
         show: false,
         data: {
@@ -218,7 +219,7 @@ window.PageEventsDisplay = {
           promo_codes,
           payment_method: null,
           fiat_provider: this.event?.extra?.fiat_provider || null,
-          nostr_identifier: null,
+          nostr_identifier: this.nostrIdentifier || null,
           refund_address: refundAddr || null
         }
 

@@ -109,10 +109,10 @@ window.i18n.global.mergeLocaleMessage('en', {
     buy_ticket: 'Buy Ticket',
     your_name_label: 'Your name (optional)',
     your_email_label: 'Your email',
-    your_email_delivery_label: 'Your email (ticket delivery)',
+    your_email_delivery_label: 'Your email (ticket delivery, mandatory)',
     required: '* Required',
-    nostr_nip05_label: '(optional) Nostr NIP-05',
-    nostr_nip05_hint: "If provided, we'll DM your ticket link after payment.",
+    nostr_nip05_label: 'Your Nostr NIP-05 (ticket delivery, optional)',
+    nostr_nip05_hint: '',
     refund_label: 'Refund lnaddress or LNURL',
     refund_hint:
       'If minimum tickets ({min_tickets}) are not met, refund will be sent.',

@@ -113,11 +113,10 @@ window.i18n.global.mergeLocaleMessage('de', {
     buy_ticket: 'Ticket kaufen',
     your_name_label: 'Ihr Name (optional)',
     your_email_label: 'Ihre E-Mail',
-    your_email_delivery_label: 'Ihre E-Mail (Ticket-Lieferung)',
+    your_email_delivery_label: 'Ihre E-Mail (Ticket-Zustellung, erforderlich)',
     required: '* Erforderlich',
-    nostr_nip05_label: '(optional) Nostr NIP-05',
-    nostr_nip05_hint:
-      'Falls angegeben, senden wir Ihnen den Ticket-Link per DM nach der Zahlung.',
+    nostr_nip05_label: 'Ihre Nostr NIP-05 (Ticket-Zustellung, optional)',
+    nostr_nip05_hint: '',
     refund_label: 'Rückerstattungs-Lnaddress oder LNURL',
     refund_hint:
       'Wenn die Mindestanzahl von {min_tickets} Tickets nicht erreicht wird, wird eine Rückerstattung gesendet.',

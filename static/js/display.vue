@@ -133,7 +133,17 @@
             ></q-input>
           </div>
 
-          <div class="q-mt-sm">
+          <div v-if="allowNostrNotifications" class="q-mt-md">
+            <q-input
+              filled
+              dense
+              v-model.trim="nostrIdentifier"
+              :label="$t('events.nostr_nip05_label')"
+              :hint="$t('events.nostr_nip05_hint')"
+            ></q-input>
+          </div>
+
+          <div class="q-mt-md">
             <div class="row items-center q-col-gutter-sm">
               <div class="col">
                 <q-input
@@ -156,19 +166,10 @@
               </div>
             </div>
           </div>
-          <div v-if="discountBreakdown.length > 0" class="q-mt-sm">
+          <div v-if="discountBreakdown.length > 0" class="q-mt-md">
             <div v-for="(d, idx) in discountBreakdown" :key="idx" class="text-caption text-positive">
               {{ d.label }}
             </div>
-          </div>
-          <div v-if="allowNostrNotifications" class="q-mt-md">
-            <q-input
-              filled
-              dense
-              v-model.trim="nostrIdentifier"
-              :label="$t('events.nostr_nip05_label')"
-              :hint="$t('events.nostr_nip05_hint')"
-            ></q-input>
           </div>
           <div class="text-h6 q-mt-md text-right">
             Total: {{ basketTotal }} {{ basketCurrency }}
