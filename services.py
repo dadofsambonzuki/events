@@ -204,7 +204,7 @@ async def create_basket_with_charge(
         id=basket_id,
         event_id=event.id,
         wallet=event.wallet,
-        email=data.email,
+        email=data.email or '',
         name=data.name,
         promo_codes=promo_code_strings,
         payment_method=data.payment_method,
