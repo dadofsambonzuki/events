@@ -547,21 +547,30 @@
             class="text-caption"
             v-text="$t('events.ticket_delivery_desc')"
           ></div>
-          <q-toggle
-            v-model="formDialog.data.extra.email_notifications"
-            :label="$t('events.email_notifications')"
-            left-label
-          ></q-toggle>
-          <q-toggle
-            v-model="formDialog.data.extra.nostr_notifications"
-            :label="$t('events.nostr_notifications')"
-            left-label
-          ></q-toggle>
+          <div class="q-mb-sm">
+            <q-toggle
+              v-model="formDialog.data.extra.email_notifications"
+              :label="$t('events.email_notifications')"
+              left-label
+              :disable="!g.settings.emailConfigured"
+            ></q-toggle>
+            <div v-if="!g.settings.emailConfigured" class="text-negative text-caption q-ml-lg" v-text="$t('events.email_not_configured')"></div>
+          </div>
+          <div class="q-mb-sm">
+            <q-toggle
+              v-model="formDialog.data.extra.nostr_notifications"
+              :label="$t('events.nostr_notifications')"
+              left-label
+              :disable="!g.settings.nostrConfigured"
+            ></q-toggle>
+            <div v-if="!g.settings.nostrConfigured" class="text-negative text-caption q-ml-lg" v-text="$t('events.nostr_not_configured')"></div>
+          </div>
           <div
-            v-if="formDialog.data.extra.email_notifications"
+            v-if="formDialog.data.extra.email_notifications || formDialog.data.extra.nostr_notifications"
             class="q-mt-md"
           >
             <q-input
+              v-if="formDialog.data.extra.email_notifications"
               filled
               dense
               v-model.trim="formDialog.data.extra.notification_subject"

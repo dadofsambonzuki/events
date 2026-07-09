@@ -52,7 +52,9 @@ window.i18n.global.mergeLocaleMessage('de', {
     ticket_delivery_desc:
       'Senden Sie den bezahlten Ticket-Link automatisch per E-Mail oder Nostr DM.',
     email_notifications: 'E-Mail-Benachrichtigungen',
+    email_not_configured: 'E-Mail in LNbits-Kerneinstellungen nicht konfiguriert',
     nostr_notifications: 'Nostr-Benachrichtigungen',
+    nostr_not_configured: 'Nostr in LNbits-Kerneinstellungen nicht konfiguriert',
     notification_subject_label: 'Betreff der Ticket-Benachrichtigung',
     notification_subject_hint:
       'Wird als E-Mail-Betreff beim Versenden von bezahlten Ticket-Links verwendet.',

@@ -53,7 +53,9 @@ window.i18n.global.mergeLocaleMessage('es', {
     ticket_delivery_desc:
       'Envía el enlace de la entrada pagada automáticamente por email o Nostr DM.',
     email_notifications: 'Notificaciones por email',
+    email_not_configured: 'Email no configurado en ajustes de LNbits',
     nostr_notifications: 'Notificaciones por Nostr',
+    nostr_not_configured: 'Nostr no configurado en ajustes de LNbits',
     notification_subject_label: 'Asunto de notificación de entrada',
     notification_subject_hint:
       'Se usa como asunto del email al enviar enlaces de entradas pagadas.',

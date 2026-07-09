@@ -51,7 +51,9 @@ window.i18n.global.mergeLocaleMessage('en', {
     ticket_delivery_desc:
       'Send the paid ticket link automatically by email or Nostr DM.',
     email_notifications: 'Email notifications',
+    email_not_configured: 'Email not configured in LNbits core settings',
     nostr_notifications: 'Nostr notifications',
+    nostr_not_configured: 'Nostr not configured in LNbits core settings',
     notification_subject_label: 'Ticket notification subject',
     notification_subject_hint:
       'Used as the email subject when sending paid ticket links.',
