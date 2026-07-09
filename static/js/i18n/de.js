@@ -115,7 +115,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     buy_ticket: 'Ticket kaufen',
     your_name_label: 'Ihr Name (optional)',
     your_email_label: 'Ihre E-Mail',
-    your_email_delivery_label: 'Ihre E-Mail (Ticket-Zustellung, erforderlich)',
+    your_email_delivery_label: 'Ihre E-Mail (Ticket-Zustellung, optional)',
     required: '* Erforderlich',
     nostr_nip05_label: 'Ihre Nostr NIP-05 (Ticket-Zustellung, optional)',
     nostr_nip05_hint: '',

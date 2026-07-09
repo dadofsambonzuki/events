@@ -114,7 +114,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     buy_ticket: 'Comprar entrada',
     your_name_label: 'Tu nombre (opcional)',
     your_email_label: 'Tu email',
-    your_email_delivery_label: 'Su email (entrega de tickets, obligatorio)',
+    your_email_delivery_label: 'Su email (entrega de tickets, opcional)',
     required: '* Obligatorio',
     nostr_nip05_label: 'Su Nostr NIP-05 (entrega de tickets, opcional)',
     nostr_nip05_hint: '',

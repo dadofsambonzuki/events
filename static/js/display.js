@@ -60,8 +60,7 @@ window.PageEventsDisplay = {
         item => item.quantity > 0
       )
       if (!hasItems) return false
-      if (!this.basketEmail) return false
-      if (!/^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$/.test(this.basketEmail)) return false
+      if (this.basketEmail && !/^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$/.test(this.basketEmail)) return false
       return true
     },
     allowEmailNotifications() {
