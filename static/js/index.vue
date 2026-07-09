@@ -264,9 +264,11 @@
               <q-tr :props="props">
                 <q-th auto-width></q-th>
                 <q-th auto-width></q-th>
+                <q-th auto-width></q-th>
                 <q-th v-for="col in props.cols" :key="col.name" :props="props">
                   <span v-text="col.label"></span>
                 </q-th>
+                <q-th auto-width></q-th>
                 <q-th auto-width></q-th>
               </q-tr>
             </template>
