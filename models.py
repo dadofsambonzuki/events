@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import Query
 from lnbits.db import FilterModel
-from pydantic import BaseModel, EmailStr, Field, root_validator, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 class PromoCode(BaseModel):
@@ -139,7 +139,7 @@ class TicketExtra(BaseModel):
 
 class CreateTicket(BaseModel):
     name: str
-    email: EmailStr
+    email: str | None = None
     ticket_type_id: str | None = None
     ticket_wave_id: str | None = None
     promo_code: str | None = None
@@ -226,7 +226,7 @@ class BasketItem(BaseModel):
 
 class CreateBasket(BaseModel):
     name: str
-    email: EmailStr
+    email: str | None = None
     items: list[BasketItem]
     promo_codes: list[str] = Field(default_factory=list)
     payment_method: str | None = None

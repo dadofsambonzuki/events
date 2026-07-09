@@ -213,7 +213,7 @@ window.PageEventsDisplay = {
 
         const body = {
           name: this.basketName,
-          email: this.basketEmail,
+          email: this.basketEmail || null,
           items,
           promo_codes,
           payment_method: null,
