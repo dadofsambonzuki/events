@@ -231,15 +231,9 @@ window.PageEventsDisplay = {
           body
         )
 
-        if (data.payment_request?.satspay_charge_url) {
-          window.location.href = data.payment_request.satspay_charge_url
-          return
-        }
-
         const firstTicket = data.tickets?.[0]
-        if (data.basket && data.totals?.total === 0 && firstTicket) {
-          this.ticketLink.show = true
-          this.ticketLink.data.link = `/events/ticket/${firstTicket.id}`
+        if (data.basket?.id) {
+          this.$router.push(`/events/basket/${data.basket.id}`)
         } else if (firstTicket) {
           this.ticketLink.show = true
           this.ticketLink.data.link = `/events/ticket/${firstTicket.id}`

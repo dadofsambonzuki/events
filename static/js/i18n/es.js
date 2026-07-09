@@ -206,6 +206,22 @@ window.i18n.global.mergeLocaleMessage('es', {
     promo_code_comma_separated: 'Código(s) promocional(es) (separados por comas)',
     promo_code_hint: 'Introduce códigos promocionales separados por comas',
     checkout: 'Pagar',
-    apply: 'Aplicar'
+    apply: 'Aplicar',
+    loading: 'Loading...',
+    basket_not_found: 'Cesta no encontrada.',
+    basket_confirmed: '¡Pago confirmado! Sus entradas están listas.',
+    basket_pending: 'Esperando confirmación de pago...',
+    buyer: 'Comprador',
+    your_tickets: 'Sus Entradas',
+    buy_more: 'Comprar más entradas',
+    order: 'Pedido',
+    total: 'Total',
+    guest_checkout: 'Compra como invitado',
+    ticket: 'Entrada',
+    open: 'Abrir',
+    continue_payment: 'Continuar pago',
+    basket_auto_update: 'Esta página se actualizará automáticamente cuando se confirme el pago.',
+    ticket_count_one: '1 entrada en este pedido',
+    ticket_count_many: '{count} entradas en este pedido'
   }
 })

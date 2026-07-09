@@ -239,13 +239,13 @@ class BasketDiscount(BaseModel):
     code: str
     discount_percent: float | None = None
     discount_fixed: int | None = None
-    amount_saved: int = 0
+    amount_saved: float = 0
 
 
 class BasketTotals(BaseModel):
-    subtotal: int = 0
-    discount: int = 0
-    total: int = 0
+    subtotal: float = 0
+    discount: float = 0
+    total: float = 0
     discounts_applied: list[BasketDiscount] = Field(default_factory=list)
 
 
@@ -275,6 +275,9 @@ class BasketResponse(BaseModel):
     tickets: list[Ticket]
     totals: BasketTotals
     payment_request: TicketPaymentRequest | None = None
+    event_name: str = ""
+    event_currency: str = "sat"
+    event_fiat_currency: str = "GBP"
 
 
 def _parse_date(value: str) -> date:

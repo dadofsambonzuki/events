@@ -76,18 +76,18 @@ async def get_satspay_charge(api_key: str, charge_id: str) -> dict[str, Any]:
         return resp.json()
 
 
-def _effective_discount(promo, price: int) -> int:
+def _effective_discount(promo, price: float) -> float:
     discount = 0
     if promo.discount_percent is not None:
-        discount = int(price * promo.discount_percent / 100)
+        discount = price * promo.discount_percent / 100
     if promo.discount_fixed is not None:
         discount += promo.discount_fixed
     return min(discount, price)
 
 
 def _apply_promo_codes(
-    promos: list, price: int
-) -> tuple[int, list[BasketDiscount]]:
+    promos: list, price: float
+) -> tuple[float, list[BasketDiscount]]:
     discounts_applied: list[BasketDiscount] = []
     current_price = price
     total_discount = 0
@@ -142,7 +142,10 @@ async def calculate_basket_total(
         tt = types_by_id.get(item["ticket_type_id"])
         if not tt:
             continue
-        subtotal += int(tt.price) * item.get("quantity", 1)
+        subtotal += float(tt.price) * item.get("quantity", 1)
+
+    if event.currency.lower() in ("sat", "sats"):
+        subtotal = int(subtotal)
 
     promos = [
         p
@@ -155,11 +158,21 @@ async def calculate_basket_total(
     )
 
     total_discount, discounts_applied = _apply_promo_codes(promos, subtotal)
+    total = max(0, subtotal - total_discount)
+
+    if event.currency.lower() in ("sat", "sats"):
+        subtotal = int(subtotal)
+        total_discount = int(total_discount)
+        total = int(total)
+    else:
+        subtotal = round(subtotal, 2)
+        total_discount = round(total_discount, 2)
+        total = round(total, 2)
 
     return BasketTotals(
         subtotal=subtotal,
         discount=total_discount,
-        total=max(0, subtotal - total_discount),
+        total=total,
         discounts_applied=discounts_applied,
     )
 

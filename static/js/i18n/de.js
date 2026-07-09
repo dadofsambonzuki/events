@@ -207,6 +207,22 @@ window.i18n.global.mergeLocaleMessage('de', {
     promo_code_comma_separated: 'Promo-Code(s) (durch Kommas getrennt)',
     promo_code_hint: 'Promo-Codes durch Kommas getrennt eingeben',
     checkout: 'Zur Kasse',
-    apply: 'Anwenden'
+    apply: 'Anwenden',
+    loading: 'Loading...',
+    basket_not_found: 'Warenkorb nicht gefunden.',
+    basket_confirmed: 'Zahlung bestätigt! Ihre Tickets sind bereit.',
+    basket_pending: 'Warten auf Zahlungsbestätigung...',
+    buyer: 'Käufer',
+    your_tickets: 'Ihre Tickets',
+    buy_more: 'Mehr Tickets kaufen',
+    order: 'Bestellung',
+    total: 'Gesamt',
+    guest_checkout: 'Gastbestellung',
+    ticket: 'Ticket',
+    open: 'Öffnen',
+    continue_payment: 'Zahlung fortsetzen',
+    basket_auto_update: 'Diese Seite aktualisiert sich automatisch, sobald die Zahlung bestätigt wurde.',
+    ticket_count_one: '1 Ticket in dieser Bestellung',
+    ticket_count_many: '{count} Tickets in dieser Bestellung'
   }
 })

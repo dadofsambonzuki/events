@@ -60,6 +60,7 @@ from .models import (
 from .services import (
     calculate_basket_total,
     create_basket_with_charge,
+    get_satspay_charge,
     handle_basket_payment,
     refund_tickets,
     resend_ticket_email_notification,
@@ -393,6 +394,9 @@ async def api_create_basket(
         tickets=tickets,
         totals=totals,
         payment_request=payment_request,
+        event_name=event.name,
+        event_currency=event.currency,
+        event_fiat_currency=event.fiat_currency,
     )
 
 
@@ -410,6 +414,21 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
 
+    if not basket.paid and basket.satspay_charge_id:
+        from lnbits.core.crud.wallets import get_wallet as get_wallet_crud
+
+        wallet_record = await get_wallet_crud(event.wallet)
+        if wallet_record:
+            try:
+                charge = await get_satspay_charge(
+                    wallet_record.inkey, basket.satspay_charge_id
+                )
+                if charge.get("paid"):
+                    await handle_basket_payment(basket_id, wallet_record.inkey)
+                    basket = await get_basket(basket_id) or basket
+            except Exception as exc:
+                logger.warning(f"Failed to reconcile basket {basket_id}: {exc}")
+
     from .crud import get_basket_tickets as get_basket_tickets_crud
     from .services import calculate_basket_total
 
@@ -426,6 +445,9 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
         tickets=tickets,
         totals=totals,
         payment_request=None,
+        event_name=event.name,
+        event_currency=event.currency,
+        event_fiat_currency=event.fiat_currency,
     )
 
 
