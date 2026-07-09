@@ -406,10 +406,9 @@ window.PageEvents = {
         })
     },
     sendEventData() {
-      const wallet = _.findWhere(this.g.user.wallets, {
-        id: this.formDialog.data.wallet
-      })
       const data = this.formDialog.data
+      data.wallet = data.extra?.ln_wallet_id || this.g.user.wallets?.[0]?.id
+      const wallet = _.findWhere(this.g.user.wallets, {id: data.wallet})
       if (this.paymentMethods.ln && !data.extra?.ln_wallet_id) {
         this.$q.notify({message: 'Select an LN wallet for Lightning payments.', type: 'negative'})
         return
@@ -457,7 +456,7 @@ window.PageEvents = {
         }
       } else {
         this.formDialog.data = {
-          wallet: this.g.user.wallets?.[0]?.id,
+          wallet: null,
           currency: 'sats',
           allow_fiat: false,
           fiat_currency: 'GBP',

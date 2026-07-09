@@ -630,11 +630,13 @@
               unelevated
               color="primary"
               :disable="
-                formDialog.data.wallet == null ||
                 formDialog.data.name == null ||
                 formDialog.data.info == null ||
                 formDialog.data.event_start_date == null ||
-                formDialog.data.event_end_date == null
+                formDialog.data.event_end_date == null ||
+                (!paymentMethods.ln && !paymentMethods.onchain && !paymentMethods.fiat) ||
+                (paymentMethods.ln && !formDialog.data.extra?.ln_wallet_id) ||
+                (paymentMethods.onchain && !formDialog.data.extra?.onchain_wallet_id)
               "
               type="submit"
               v-text="$t('events.create_event')"
