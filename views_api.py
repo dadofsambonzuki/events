@@ -649,7 +649,7 @@ async def api_ticket_deactivate(
 
 
 @events_api_router.put("/tickets/register/{ticket_id}")
-async def api_event_register_ticket(ticket_id: str) -> Ticket:
+async def api_event_register_ticket(ticket_id: str) -> dict:
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(
@@ -667,10 +667,34 @@ async def api_event_register_ticket(ticket_id: str) -> Ticket:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Ticket already registered."
         )
+
+    event = await get_event(ticket.event)
     ticket.registered = True
     ticket.reg_timestamp = datetime.now(timezone.utc)
     ticket = await update_ticket(ticket)
-    return ticket
+
+    from .crud import get_ticket_types as get_event_ticket_types
+    ticket_types = await get_event_ticket_types(ticket.event)
+    tt_name = ""
+    if ticket.ticket_type_id and ticket_types:
+        for tt in ticket_types:
+            if tt.id == ticket.ticket_type_id:
+                tt_name = tt.name
+                break
+
+    return {
+        "id": ticket.id,
+        "event": ticket.event,
+        "name": ticket.name or "",
+        "email": ticket.email or "",
+        "registered": ticket.registered,
+        "paid": ticket.paid,
+        "ticket_type_id": ticket.ticket_type_id,
+        "ticket_type_name": tt_name,
+        "time": ticket.time,
+        "reg_timestamp": ticket.reg_timestamp,
+        "extra": dict(ticket.extra) if ticket.extra else None,
+    }
 
 
 @events_api_router.post("/tickets/{ticket_id}/resend-email")

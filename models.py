@@ -158,7 +158,7 @@ class Ticket(BaseModel):
     registered: bool
     paid: bool
     time: datetime
-    reg_timestamp: datetime
+    reg_timestamp: datetime | None = None
     ticket_type_id: str | None = None
     basket_id: str | None = None
     extra: TicketExtra = Field(default_factory=TicketExtra)
@@ -188,7 +188,7 @@ class PublicTicket(BaseModel):
     registered: bool
     paid: bool
     time: datetime
-    reg_timestamp: datetime
+    reg_timestamp: datetime | None = None
 
 
 class TicketPaymentRequest(BaseModel):
