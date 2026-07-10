@@ -276,6 +276,7 @@ class BasketResponse(BaseModel):
     totals: BasketTotals
     payment_request: TicketPaymentRequest | None = None
     event_name: str = ""
+    event_image_url: str | None = None
     event_currency: str = "sat"
     event_fiat_currency: str = "GBP"
 

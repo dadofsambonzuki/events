@@ -20,6 +20,7 @@
 
       <template v-else>
         <q-card>
+          <div v-if="eventImageUrl" :style="bannerStyle" class="banner-header"></div>
           <q-card-section>
             <div class="row items-center q-col-gutter-md">
               <div class="col-auto">
@@ -31,11 +32,11 @@
                 ></q-avatar>
               </div>
               <div class="col">
-                <div class="text-overline text-grey-7" v-text="basketStatus"></div>
                 <h4 class="q-my-xs" v-text="eventName"></h4>
                 <div class="text-caption text-grey-7">
-                  <span v-text="$t('events.order')"></span>
-                  <span class="q-ml-xs" v-text="shortenId(basket.id)"></span>
+                  <q-badge :color="basket.paid ? 'positive' : 'warning'" class="q-mt-xs">
+                    <span v-text="basketStatus"></span>
+                  </q-badge>
                 </div>
               </div>
             </div>
@@ -44,11 +45,18 @@
 
         <q-card>
           <q-card-section>
-            <div class="row q-col-gutter-md">
+            <div class="row q-col-gutter-md items-start">
               <div class="col-12 col-sm-6">
                 <div class="text-caption text-grey-7" v-text="$t('events.buyer')"></div>
                 <div class="text-body1" v-text="buyerName"></div>
                 <div v-if="basket.email" class="text-caption text-grey-7" v-text="basket.email"></div>
+                <div class="text-caption q-mt-xs text-grey-7">
+                  Order ID:
+                  <a v-if="basket.satspay_charge_id" :href="'/satspay/' + basket.satspay_charge_id" target="_blank" class="text-secondary">
+                    <span v-text="basket.id"></span>
+                  </a>
+                  <span v-else v-text="basket.id"></span>
+                </div>
               </div>
               <div class="col-12 col-sm-6 text-left text-sm-right">
                 <div class="text-caption text-grey-7" v-text="$t('events.total')"></div>
@@ -100,20 +108,17 @@
                 <q-item-section>
                   <q-item-label v-text="ticketName(ticket)"></q-item-label>
                   <q-item-label caption>
-                    <span v-text="$t('events.ticket')"></span>
-                    <span> </span>
-                    <span v-text="shortenId(ticket.id)"></span>
+                    Ticket ID: <span v-text="ticket.id"></span>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn
                     v-if="ticket.paid"
-                    flat
+                    unelevated
                     dense
-                    color="primary"
-                    icon-right="chevron_right"
+                    color="positive"
                     :to="`/events/ticket/${ticket.id}`"
-                    :label="$t('events.open')"
+                    :label="$t('events.show_ticket')"
                   ></q-btn>
                   <q-badge
                     v-else
@@ -132,7 +137,7 @@
               <div v-if="!basket.paid && paymentLink" class="col-12 col-sm-auto">
                 <q-btn
                   unelevated
-                  color="primary"
+                  color="positive"
                   class="full-width"
                   :href="paymentLink"
                   :label="$t('events.continue_payment')"
@@ -140,8 +145,8 @@
               </div>
               <div class="col-12 col-sm-auto">
                 <q-btn
-                  outline
-                  color="primary"
+                  unelevated
+                  color="positive"
                   class="full-width"
                   :to="`/events/${basket.event_id}`"
                   :label="$t('events.buy_more')"

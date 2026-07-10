@@ -446,6 +446,7 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
         totals=totals,
         payment_request=None,
         event_name=event.name,
+        event_image_url=event.banner,
         event_currency=event.currency,
         event_fiat_currency=event.fiat_currency,
     )
