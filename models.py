@@ -182,6 +182,8 @@ class TicketResendResult(BaseModel):
 
 class PublicTicket(BaseModel):
     event: str
+    event_name: str = ""
+    ticket_type_name: str = ""
     name: str
     registered: bool
     paid: bool

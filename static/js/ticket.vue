@@ -2,51 +2,30 @@
   <div class="row q-col-gutter-md justify-center">
     <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
       <q-card class="q-pa-lg">
-        <q-card-section class="q-pa-none">
-          <center>
-            <h3 class="q-my-none" v-text="$t('events.ticket_heading')"></h3>
-            <h5 v-if="ticket" v-text="ticket.name" class="q-my-none"></h5>
-            <br />
-            <h5
-              class="q-my-none"
-              v-text="$t('events.ticket_instructions')"
-            ></h5>
-            <div v-if="ticket" class="row justify-center q-gutter-sm q-mb-md">
-              <q-badge
-                v-if="ticket.extra?.deactivated"
-                color="negative"
-                class="q-pa-sm"
-                v-text="$t('events.ticket_deactivated')"
-              ></q-badge>
-              <q-btn
-                unelevated
-                :color="ticket.paid ? 'positive' : 'negative'"
-                :label="
-                  ticket.paid
-                    ? $t('events.ticket_paid')
-                    : $t('events.ticket_not_paid')
-                "
-              ></q-btn>
-              <q-btn
-                unelevated
-                :color="ticket.registered ? 'positive' : 'warning'"
-                :label="
-                  ticket.registered
-                    ? $t('events.checked_in')
-                    : $t('events.not_checked_in')
-                "
-              ></q-btn>
-            </div>
-            <lnbits-qrcode
-              :value="`ticket://${ticketId}`"
-              :options="{width: 500}"
-            ></lnbits-qrcode>
-            <br />
-            <q-btn @click="printWindow" color="grey">
-              <q-icon left size="3em" name="print"></q-icon>
+        <q-card-section class="q-pa-none text-center">
+          <h3 class="q-my-sm" v-text="eventName"></h3>
+          <h5 v-if="ticketTypeName" class="q-my-sm" v-text="ticketTypeName"></h5>
+          <div v-if="ticket && ticket.extra?.deactivated" class="q-mb-md">
+            <q-badge
+              color="negative"
+              class="q-pa-sm"
+              v-text="$t('events.ticket_deactivated')"
+            ></q-badge>
+          </div>
+          <lnbits-qrcode
+            :value="`ticket://${ticketId}`"
+            :options="{width: 500}"
+            :show-buttons="false"
+            :nfc="false"
+          ></lnbits-qrcode>
+          <div class="q-mt-md">
+            <q-btn unelevated color="positive" @click="copyTicketUrl">
+              <span v-text="$t('events.copy_url')"></span>
+            </q-btn>
+            <q-btn unelevated color="positive" @click="printWindow" class="q-ml-sm">
               <span v-text="$t('events.print')"></span>
             </q-btn>
-          </center>
+          </div>
         </q-card-section>
       </q-card>
     </div>
@@ -54,6 +33,8 @@
 
   <Teleport to="body">
     <div class="ticket-print-sheet" v-if="printMode">
+      <h3 class="ticket-print-event" v-text="eventName"></h3>
+      <h5 v-if="ticketTypeName" class="ticket-print-type" v-text="ticketTypeName"></h5>
       <img class="ticket-print-qr" :src="qrSrc" alt="Ticket QR" v-if="qrSrc" />
     </div>
   </Teleport>
@@ -82,6 +63,7 @@
 
   .ticket-print-sheet {
     display: flex !important;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100vw;
@@ -91,6 +73,18 @@
     background: white !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  .ticket-print-event {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .ticket-print-type {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #666 !important;
   }
 
   .ticket-print-qr {
