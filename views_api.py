@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from http import HTTPStatus
 from io import BytesIO
+import json
 
 import pyqrcode  # type: ignore[import-untyped]
 from fastapi import (
@@ -469,7 +470,17 @@ async def api_basket_satspay_webhook(
     basket_id: str,
     request: Request,
 ):
-    body = await request.json()
+    raw_body = await request.body()
+    try:
+        body = json.loads(raw_body)
+        # satspay sends json=charge.json() which double-encodes on <v1.5.5rc3,
+        # so body may still be a JSON string — decode again if needed
+        if isinstance(body, str):
+            body = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Invalid JSON body"
+        )
     charge_id = body.get("charge_id")
     logger.debug(f"SatsPay webhook for basket {basket_id}, charge {charge_id}")
 
