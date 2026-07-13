@@ -182,6 +182,8 @@ window.i18n.global.mergeLocaleMessage('de', {
     promo_combinable: 'Kombinierbar',
     promo_max_uses: 'Max. Verwendungen',
     promo_max_uses_hint: 'Maximale Anzahl der Verwendungen dieses Codes (0 = unbegrenzt)',
+    promo_uses_label: 'Verwendet: {used} / {max}',
+    promo_uses_unlimited: 'Verwendet: {used} mal (unbegrenzt)',
     discount_type: 'Rabatt-Typ',
     discount_percent_label: '% Rabatt',
     discount_fixed_label: 'Fester Rabatt',

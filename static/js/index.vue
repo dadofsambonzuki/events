@@ -193,7 +193,7 @@
                             <span
                               style="white-space: normal; line-height: 1.3"
                               v-text="
-                                `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? ` ${code.discount_fixed} ${props.row.currency === 'sat' ? 'sats' : props.row.currency}` : ''}`
+                                `${code.code.toUpperCase()} - ${code.discount_percent != null ? code.discount_percent + '%' : ''}${code.discount_fixed != null ? ` ${code.discount_fixed} ${props.row.currency === 'sat' ? 'sats' : props.row.currency}` : ''}${code.max_uses != null && code.max_uses > 0 ? ` (${code.used_count || 0}/${code.max_uses})` : ''}`
                               "
                             ></span>
                           </q-chip>
@@ -978,6 +978,17 @@
             hint="0 = unlimited"
             min="0"
           ></q-input>
+
+          <div
+            class="text-caption q-mt-xs"
+            v-if="editPromoCodeDialog.data.max_uses != null && editPromoCodeDialog.data.max_uses > 0"
+            v-text="$t('events.promo_uses_label', {used: editPromoCodeDialog.data.used_count || 0, max: editPromoCodeDialog.data.max_uses})"
+          ></div>
+          <div
+            class="text-caption q-mt-xs"
+            v-else-if="editPromoCodeDialog.data.used_count > 0"
+            v-text="$t('events.promo_uses_unlimited', {used: editPromoCodeDialog.data.used_count || 0})"
+          ></div>
 
           <div>
             <div class="text-caption q-mb-sm" v-text="$t('events.discount_type')"></div>

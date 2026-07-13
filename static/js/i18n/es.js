@@ -181,6 +181,8 @@ window.i18n.global.mergeLocaleMessage('es', {
     promo_combinable: 'Combinable',
     promo_max_uses: 'Usos máximos',
     promo_max_uses_hint: 'Número máximo de veces que se puede usar este código (0 = ilimitado)',
+    promo_uses_label: 'Usos: {used} / {max}',
+    promo_uses_unlimited: 'Usado: {used} veces (ilimitado)',
     discount_type: 'Tipo de descuento',
     discount_percent_label: '% Descuento',
     discount_fixed_label: 'Descuento fijo',

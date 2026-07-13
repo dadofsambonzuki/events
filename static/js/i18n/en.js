@@ -177,6 +177,8 @@ window.i18n.global.mergeLocaleMessage('en', {
     promo_combinable: 'Combinable',
     promo_max_uses: 'Max Uses',
     promo_max_uses_hint: 'Maximum number of times this code can be used (0 = unlimited)',
+    promo_uses_label: 'Uses: {used} / {max}',
+    promo_uses_unlimited: 'Used: {used} times (unlimited)',
     discount_type: 'Discount Type',
     discount_percent_label: '% Discount',
     discount_fixed_label: 'Fixed Discount',
