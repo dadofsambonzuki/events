@@ -999,6 +999,16 @@ window.PageEvents = {
         .finally(() => {
           this.emailAllDialog.loading = false
         })
+    },
+    previewTicketEmailUrl(event) {
+      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
+      if (!wallet) return '#'
+      return `/events/api/v1/events/${event.id}/preview/ticket-email?key=${wallet.inkey}`
+    },
+    previewAdminEmailUrl(event) {
+      const wallet = _.findWhere(this.g.user.wallets, {id: event.wallet})
+      if (!wallet) return '#'
+      return `/events/api/v1/events/${event.id}/preview/admin-email?key=${wallet.inkey}`
     }
   },
   created() {

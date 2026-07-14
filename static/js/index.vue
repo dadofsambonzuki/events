@@ -223,6 +223,26 @@
                           @click="openEmailAllDialog(props.row.id)"
                         ></q-btn>
                       </div>
+                      <div class="col-auto">
+                        <q-btn
+                          outline
+                          dense
+                          color="secondary"
+                          :label="$t('events.preview_ticket_email')"
+                          :href="previewTicketEmailUrl(props.row)"
+                          target="_blank"
+                        ></q-btn>
+                      </div>
+                      <div class="col-auto">
+                        <q-btn
+                          outline
+                          dense
+                          color="secondary"
+                          :label="$t('events.preview_admin_email')"
+                          :href="previewAdminEmailUrl(props.row)"
+                          target="_blank"
+                        ></q-btn>
+                      </div>
                     </div>
                   </div>
                 </q-td>

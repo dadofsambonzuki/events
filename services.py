@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import smtplib
 from asyncio.tasks import create_task
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html import escape
@@ -371,27 +372,418 @@ async def handle_basket_payment(
     return charge
 
 
+# ---------------------------------------------------------------------------
+# Email formatting helpers
+# ---------------------------------------------------------------------------
+
+_CURRENCY_SYMBOLS = {"GBP": "£", "EUR": "€", "USD": "$", "JPY": "¥"}
+
+
+def _currency_symbol(currency: str) -> str:
+    return _CURRENCY_SYMBOLS.get(currency.upper(), currency + " ")
+
+
+def _format_price(event: Event, amount: float) -> str:
+    if event.currency.lower() in ("sat", "sats"):
+        return f"{int(amount)} sats"
+    symbol = _currency_symbol(event.fiat_currency or event.currency)
+    return f"{symbol}{amount:.2f}"
+
+
+def _format_event_dates(event: Event) -> str:
+    try:
+        start = datetime.strptime(event.event_start_date, "%Y-%m-%d")
+        end = datetime.strptime(event.event_end_date, "%Y-%m-%d")
+        if start == end:
+            return start.strftime("%A, %d %B %Y")
+        if start.year == end.year and start.month == end.month:
+            return f"{start.strftime('%A, %d')} – {end.strftime('%d %B %Y')}"
+        if start.year == end.year:
+            return f"{start.strftime('%A, %d %B')} – {end.strftime('%A, %d %B %Y')}"
+        return f"{start.strftime('%d %B %Y')} – {end.strftime('%d %B %Y')}"
+    except (ValueError, TypeError):
+        return f"{event.event_start_date} – {event.event_end_date}"
+
+
+def _ticket_type_name(ticket: Ticket, tt_map: dict) -> str:
+    if ticket.ticket_type_id and ticket.ticket_type_id in tt_map:
+        return tt_map[ticket.ticket_type_id].name
+    return "General Admission"
+
+
+def _ticket_type_price(ticket: Ticket, tt_map: dict) -> float | None:
+    if ticket.ticket_type_id and ticket.ticket_type_id in tt_map:
+        return float(tt_map[ticket.ticket_type_id].price)
+    return None
+
+
+def _display_name(name: str | None) -> str:
+    return name if name else "Anon"
+
+
+def _grouped_ticket_types(tickets: list[Ticket], tt_map: dict) -> list[tuple[str, int, float]]:
+    counts: dict[str, dict] = {}
+    for t in tickets:
+        tt_name = _ticket_type_name(t, tt_map)
+        if tt_name not in counts:
+            price = _ticket_type_price(t, tt_map) or 0
+            counts[tt_name] = {"qty": 0, "price": price}
+        counts[tt_name]["qty"] += 1
+    return [(name, d["qty"], d["price"]) for name, d in counts.items()]
+
+
+# ---------------------------------------------------------------------------
+# HTML email template builders
+# ---------------------------------------------------------------------------
+
+_EMAIL_BASE_STYLE = (
+    "margin:0;padding:0;background:#f0f0f0;"
+    "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
+    "Helvetica,Arial,sans-serif;"
+)
+_EMAIL_WRAPPER_STYLE = "background:#f0f0f0;padding:24px 12px;"
+_EMAIL_CARD_STYLE = (
+    "background:#ffffff;border-radius:10px;overflow:hidden;"
+    "max-width:600px;margin:0 auto;"
+    "box-shadow:0 2px 8px rgba(0,0,0,0.08);"
+)
+_EMAIL_BANNER_STYLE = (
+    "display:block;width:100%;max-height:220px;object-fit:cover;"
+)
+_EMAIL_HEADER_STYLE = (
+    "background:#161b22;padding:32px 40px;text-align:center;"
+)
+_EMAIL_H1_STYLE = "margin:0 0 6px 0;font-size:24px;color:#ffffff;font-weight:700;"
+_EMAIL_H2_STYLE = "margin:0 0 4px 0;font-size:18px;color:#161b22;font-weight:600;"
+_EMAIL_DATE_STYLE = "margin:0;font-size:14px;color:#8b949e;"
+_EMAIL_SECTION_STYLE = "padding:0 40px;"
+_EMAIL_BODY_STYLE = "margin:0 0 20px 0;font-size:15px;color:#1f2328;line-height:1.6;"
+_EMAIL_CARD_INNER = (
+    "background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;"
+    "padding:20px;margin-bottom:16px;"
+)
+_EMAIL_LABEL_STYLE = "margin:0 0 2px 0;font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;"
+_EMAIL_VALUE_STYLE = "margin:0 0 12px 0;font-size:15px;color:#1f2328;"
+_EMAIL_BTN_STYLE = (
+    "display:inline-block;background:#0969da;color:#ffffff;"
+    "text-decoration:none;font-size:14px;font-weight:600;"
+    "padding:10px 28px;border-radius:6px;"
+)
+_EMAIL_BTN_OUTLINE_STYLE = (
+    "display:inline-block;background:transparent;color:#0969da;"
+    "text-decoration:none;font-size:14px;font-weight:600;"
+    "padding:10px 24px;border-radius:6px;border:1px solid #0969da;"
+)
+_EMAIL_FOOTER_STYLE = (
+    "background:#f6f8fa;padding:24px 40px;text-align:center;"
+    "border-top:1px solid #d0d7de;"
+)
+_EMAIL_FOOTER_P_STYLE = "margin:0;font-size:12px;color:#8b949e;line-height:1.5;"
+
+
+def _email_header_html(event: Event) -> str:
+    if event.banner:
+        return (
+            f'<tr><td style="padding:0;">'
+            f'<img src="{escape(event.banner, quote=True)}" '
+            f'alt="{escape(event.name, quote=True)}" '
+            f'style="{_EMAIL_BANNER_STYLE}" />'
+            f'</td></tr>'
+            f'<tr><td style="{_EMAIL_HEADER_STYLE}">'
+            f'<h1 style="{_EMAIL_H1_STYLE}">{escape(event.name)}</h1>'
+            f'<p style="{_EMAIL_DATE_STYLE}">{escape(_format_event_dates(event))}</p>'
+            f'</td></tr>'
+        )
+    return (
+        f'<tr><td style="{_EMAIL_HEADER_STYLE}">'
+        f'<h1 style="{_EMAIL_H1_STYLE}">{escape(event.name)}</h1>'
+        f'<p style="{_EMAIL_DATE_STYLE}">{escape(_format_event_dates(event))}</p>'
+        f'</td></tr>'
+    )
+
+
+def _email_footer_html() -> str:
+    base = escape(settings.lnbits_baseurl or "")
+    return (
+        f'<tr><td style="{_EMAIL_FOOTER_STYLE}">'
+        f'<p style="{_EMAIL_FOOTER_P_STYLE}">'
+        f'Tickets powered by LNbits'
+        f"</p>"
+        f'<p style="{_EMAIL_FOOTER_P_STYLE}">'
+        f'<a href="{base}" style="color:#0969da;text-decoration:none;">{base}</a>'
+        f"</p>"
+        f"</td></tr>"
+    )
+
+
+def _ticket_row_html(ticket: Ticket, tt_map: dict) -> str:
+    tt_name = escape(_ticket_type_name(ticket, tt_map))
+    url = escape(_ticket_url(ticket), quote=True)
+    return (
+        f'<div style="{_EMAIL_CARD_INNER}">'
+        f'<p style="margin:0 0 12px 0;font-size:16px;font-weight:600;color:#161b22;">{tt_name}</p>'
+        f'<a href="{url}" style="{_EMAIL_BTN_STYLE}">Open ticket</a>'
+        f'</div>'
+    )
+
+
+def _order_summary_html(
+    event: Event,
+    basket: Basket,
+    tickets: list[Ticket],
+    tt_map: dict,
+    base_url: str,
+) -> str:
+    buyer = escape(_display_name(basket.name))
+    buyer_email = escape(basket.email) if basket.email else "—"
+    basket_url = escape(f"{base_url}/events/basket/{basket.id}", quote=True)
+    count = len(tickets)
+
+    total = 0.0
+    for t in tickets:
+        p = _ticket_type_price(t, tt_map)
+        if p is not None:
+            total += p
+    total_str = escape(_format_price(event, total)) if total > 0 else ""
+
+    rows = (
+        f'<p style="{_EMAIL_LABEL_STYLE}">Order ID</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">'
+        f'<a href="{basket_url}" style="color:#0969da;text-decoration:none;font-weight:600;">{escape(basket.id)}</a>'
+        f'</p>'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Buyer</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">{buyer} &lt;{buyer_email}&gt;</p>'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Tickets</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">{count}</p>'
+    )
+    if total_str:
+        rows += (
+            f'<p style="{_EMAIL_LABEL_STYLE}">Total paid</p>'
+            f'<p style="margin:0;font-size:18px;font-weight:700;color:#1f2328;">{total_str}</p>'
+        )
+
+    return (
+        f'<div style="background:#ddf4ff;border:1px solid #0969da;border-radius:8px;padding:20px;">'
+        f'{rows}'
+        f'</div>'
+    )
+
+
+def _render_ticket_email_html(
+    event: Event,
+    tickets: list[Ticket],
+    tt_map: dict,
+    body_text: str,
+    basket: Basket | None = None,
+    base_url: str = "",
+) -> str:
+    header = _email_header_html(event)
+
+    body_html = (
+        f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:28px;">'
+        f'<p style="{_EMAIL_BODY_STYLE}">{escape(body_text).replace(chr(10), "<br />")}</p>'
+        f'</td></tr>'
+    )
+
+    tickets_label = "Your ticket" if len(tickets) == 1 else "Your tickets"
+    ticket_rows = "".join(_ticket_row_html(t, tt_map) for t in tickets)
+    tickets_html = (
+        f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:8px;">'
+        f'<h2 style="{_EMAIL_H2_STYLE}">{tickets_label}</h2>'
+        f'<div style="margin-top:12px;">{ticket_rows}</div>'
+        f'</td></tr>'
+    )
+
+    basket_link_html = ""
+    if basket and base_url:
+        basket_url = escape(f"{base_url}/events/basket/{basket.id}", quote=True)
+        basket_link_html = (
+            f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:0;">'
+            f'<div style="margin-top:8px;">'
+            f'<a href="{basket_url}" style="{_EMAIL_BTN_OUTLINE_STYLE}">View basket</a>'
+            f'</div>'
+            f'</td></tr>'
+        )
+
+    summary_html = ""
+    if basket and base_url:
+        summary_html = (
+            f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:24px;padding-bottom:28px;">'
+            f'<h2 style="{_EMAIL_H2_STYLE}">Order summary</h2>'
+            f'<div style="margin-top:12px;">'
+            f'{_order_summary_html(event, basket, tickets, tt_map, base_url)}'
+            f'</div>'
+            f'</td></tr>'
+        )
+    else:
+        summary_html = f'<tr><td style="height:20px;"></td></tr>'
+
+    footer = _email_footer_html()
+
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0">'
+        '</head><body style="' + _EMAIL_BASE_STYLE + '">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="' + _EMAIL_WRAPPER_STYLE + '">'
+        '<tr><td>'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="' + _EMAIL_CARD_STYLE + '">'
+        + header +
+        body_html +
+        tickets_html +
+        basket_link_html +
+        summary_html +
+        footer +
+        '</table></td></tr></table></body></html>'
+    )
+
+
+def _render_admin_email_html(
+    event: Event,
+    basket: Basket,
+    tickets: list[Ticket],
+    tt_map: dict,
+    base_url: str,
+) -> str:
+    header = _email_header_html(event)
+
+    count = len(tickets)
+    total = 0.0
+    for t in tickets:
+        p = _ticket_type_price(t, tt_map)
+        if p is not None:
+            total += p
+    total_str = escape(_format_price(event, total)) if total > 0 else ""
+
+    buyer = escape(_display_name(basket.name))
+    buyer_email = escape(basket.email) if basket.email else "—"
+    basket_url = escape(f"{base_url}/events/basket/{basket.id}", quote=True)
+
+    summary_html = (
+        f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:8px;">'
+        f'<div style="background:#ddf4ff;border:1px solid #0969da;border-radius:8px;padding:20px;">'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Order ID</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">'
+        f'<a href="{basket_url}" style="color:#0969da;text-decoration:none;font-weight:600;">{escape(basket.id)}</a>'
+        f'</p>'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Buyer</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">{buyer} &lt;{buyer_email}&gt;</p>'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Tickets sold</p>'
+        f'<p style="{_EMAIL_VALUE_STYLE}">{count}</p>'
+        f'<p style="{_EMAIL_LABEL_STYLE}">Total</p>'
+        f'<p style="margin:0;font-size:18px;font-weight:700;color:#1f2328;">{total_str}</p>'
+        f'</div>'
+        f'</td></tr>'
+    )
+
+    grouped = _grouped_ticket_types(tickets, tt_map)
+    ticket_rows = ""
+    for tt_name, qty, price in grouped:
+        price_str = escape(_format_price(event, price * qty)) if price > 0 else ""
+        ticket_rows += (
+            f'<tr>'
+            f'<td style="padding:10px 0;border-bottom:1px solid #d0d7de;">'
+            f'<p style="margin:0;font-weight:600;color:#161b22;">{escape(tt_name)}</p>'
+            f'</td>'
+            f'<td style="padding:10px 0;border-bottom:1px solid #d0d7de;text-align:right;vertical-align:top;">'
+            f'<p style="margin:0;font-size:15px;color:#1f2328;">×{qty}</p>'
+            f'</td>'
+            f'<td style="padding:10px 0;border-bottom:1px solid #d0d7de;text-align:right;vertical-align:top;">'
+            f'<p style="margin:0;font-size:14px;font-weight:600;color:#1f2328;">{price_str}</p>'
+            f'</td>'
+            f'</tr>'
+        )
+
+    tickets_html = (
+        f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:24px;padding-bottom:28px;">'
+        f'<h2 style="{_EMAIL_H2_STYLE}">Tickets in this sale</h2>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">'
+        f'<thead><tr>'
+        f'<td style="{_EMAIL_LABEL_STYLE}padding-bottom:8px;">Ticket type</td>'
+        f'<td style="{_EMAIL_LABEL_STYLE}padding-bottom:8px;text-align:right;">Qty</td>'
+        f'<td style="{_EMAIL_LABEL_STYLE}padding-bottom:8px;text-align:right;">Total</td>'
+        f'</tr></thead>'
+        f'<tbody>{ticket_rows}</tbody>'
+        f'</table>'
+        f'</td></tr>'
+    )
+
+    body_html = (
+        f'<tr><td style="{_EMAIL_SECTION_STYLE}padding-top:28px;">'
+        f'<h2 style="{_EMAIL_H2_STYLE}">New ticket sale</h2>'
+        f'<p style="{_EMAIL_BODY_STYLE}">'
+        f'{count} ticket(s) were just sold for '
+        f'<strong>{escape(event.name)}</strong>.</p>'
+        f'</td></tr>'
+    )
+
+    footer = _email_footer_html()
+
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0">'
+        '</head><body style="' + _EMAIL_BASE_STYLE + '">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="' + _EMAIL_WRAPPER_STYLE + '">'
+        '<tr><td>'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="' + _EMAIL_CARD_STYLE + '">'
+        + header +
+        body_html +
+        summary_html +
+        tickets_html +
+        footer +
+        '</table></td></tr></table></body></html>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Notification senders
+# ---------------------------------------------------------------------------
+
 async def _send_admin_sale_notification(
     event: Event, basket: Basket, tickets: list[Ticket]
 ) -> None:
     if not event.admin_email or not settings.lnbits_email_notifications_enabled:
         return
 
+    tt_map: dict[str, TicketType] = {}
+    tt_ids = {t.ticket_type_id for t in tickets if t.ticket_type_id}
+    for ttid in tt_ids:
+        tt = await get_ticket_type(ttid)
+        if tt:
+            tt_map[tt.id] = tt
+
+    base_url = _resolve_base_url(tickets)
+    count = len(tickets)
+
+    grouped = _grouped_ticket_types(tickets, tt_map)
     ticket_details = "\n".join(
-        f"- {t.name} ({t.email}) — {t.id}" for t in tickets
+        f"- {name} ×{qty}"
+        + (f" — {_format_price(event, price * qty)}" if price > 0 else "")
+        for name, qty, price in grouped
     )
-    message = (
-        f"New ticket sale for '{event.name}'\n\n"
-        f"Basket: {basket.id}\n"
-        f"Buyer: {basket.name} ({basket.email})\n"
-        f"Tickets: {len(tickets)}\n\n"
+    total = sum(price * qty for _, qty, price in grouped)
+    total_str = _format_price(event, total) if total > 0 else ""
+
+    basket_url = f"{base_url}/events/basket/{basket.id}"
+    text_message = (
+        f"New ticket sale for '{event.name}'\n"
+        f"{_format_event_dates(event)}\n\n"
+        f"Order ID: {basket.id}\n"
+        f"View basket: {basket_url}\n"
+        f"Buyer: {_display_name(basket.name)} ({basket.email or '—'})\n"
+        f"Tickets: {count}\n"
+        f"Total: {total_str}\n\n"
         f"{ticket_details}"
     )
-    subject = f"New sale: {len(tickets)} ticket(s) for '{event.name}'"
+    subject = f"New sale: {count} ticket(s) for '{event.name}'"
+    html_message = _render_admin_email_html(event, basket, tickets, tt_map, base_url)
 
     try:
         await _send_ticket_email_notification(
-            [event.admin_email], message, subject
+            [event.admin_email], text_message, subject, html_message
         )
     except Exception as exc:
         logger.warning(f"Failed to send admin notification: {exc}")
@@ -505,23 +897,18 @@ async def _send_basket_ticket_notifications(
     if not settings.lnbits_email_notifications_enabled:
         return
 
+    tt_map = await _build_tt_map(tickets)
+    base_url = _resolve_base_url(tickets)
+
     by_email: dict[str, list[Ticket]] = {}
     for ticket in tickets:
         if ticket.email:
             by_email.setdefault(ticket.email, []).append(ticket)
 
     for email, email_tickets in by_email.items():
-        subject = (
-            event.extra.notification_subject.strip()
-            or f"Your tickets for '{event.name}' are ready"
+        subject, text_message, html_message = _build_ticket_email(
+            event, email_tickets, tt_map, basket, base_url
         )
-        body = (
-            event.extra.notification_body.strip()
-            or f"Your tickets for '{event.name}' are ready."
-        )
-        ticket_urls = "\n".join(f"- Open ticket: {_ticket_url(t)}" for t in email_tickets)
-        text_message = f"{body}\n\n{ticket_urls}"
-        html_message = f"<p>{escape(text_message).replace(chr(10), '<br />')}</p>"
 
         try:
             await _send_ticket_email_notification(
@@ -558,46 +945,71 @@ async def resend_ticket_email_notification(
     return await _deliver_ticket_notifications(ticket, event)
 
 
-def _ticket_notification_message(ticket: Ticket, event: Event) -> tuple[str, str]:
-    ticket_url = _ticket_url(ticket)
+async def _build_tt_map(tickets: list[Ticket]) -> dict[str, TicketType]:
+    tt_map: dict[str, TicketType] = {}
+    tt_ids = {t.ticket_type_id for t in tickets if t.ticket_type_id}
+    for ttid in tt_ids:
+        tt = await get_ticket_type(ttid)
+        if tt:
+            tt_map[tt.id] = tt
+    return tt_map
+
+
+def _resolve_base_url(tickets: list[Ticket]) -> str:
+    for t in tickets:
+        if t.extra.ticket_base_url:
+            return t.extra.ticket_base_url.rstrip("/")
+    return (settings.lnbits_baseurl or "").rstrip("/")
+
+
+def _basket_url(basket: Basket, base_url: str) -> str:
+    return f"{base_url}/events/basket/{basket.id}"
+
+
+def _build_ticket_email(
+    event: Event,
+    tickets: list[Ticket],
+    tt_map: dict,
+    basket: Basket | None,
+    base_url: str,
+) -> tuple[str, str, str]:
     subject = (
         event.extra.notification_subject.strip()
-        or f"Your ticket for '{event.name}' is ready"
+        or (f"Your ticket for '{event.name}' is ready"
+            if len(tickets) == 1
+            else f"Your tickets for '{event.name}' are ready")
     )
     body = (
         event.extra.notification_body.strip()
-        or f"Your ticket for '{event.name}' is ready."
+        or (f"Your ticket for '{event.name}' is ready."
+            if len(tickets) == 1
+            else f"Your tickets for '{event.name}' are ready.")
     )
 
-    return subject, f"{body}\n\nOpen it here: {ticket_url}"
-
-
-def _ticket_delivery_message(ticket: Ticket, event: Event, base_message: str) -> str:
-    ticket_image_url = _ticket_image_url(ticket, event)
-    if not ticket_image_url:
-        return base_message
-
-    return f"{base_message}\n\nTicket image: {ticket_image_url}"
-
-
-def _ticket_email_html_message(ticket: Ticket, event: Event, base_message: str) -> str:
-    text_message = _ticket_delivery_message(ticket, event, base_message)
-    html_message = f"<p>{escape(text_message).replace(chr(10), '<br />')}</p>"
-    ticket_image_url = _ticket_image_url(ticket, event)
-    if not ticket_image_url:
-        return html_message
-
-    return (
-        f"{html_message}"
-        f'<p><img src="{escape(ticket_image_url, quote=True)}" alt="Ticket image" '
-        'style="max-width: 200px; height: auto;" /></p>'
+    ticket_lines = "\n".join(
+        f"- {_ticket_type_name(t, tt_map)}"
+        f"\n  Open ticket: {_ticket_url(t)}"
+        for t in tickets
     )
 
+    text_message = (
+        f"{body}\n\n"
+        f"{event.name}\n"
+        f"{_format_event_dates(event)}\n\n"
+        f"{ticket_lines}\n"
+    )
 
-def _ticket_notification_payload(ticket: Ticket, event: Event) -> tuple[str, str, str]:
-    subject, base_message = _ticket_notification_message(ticket, event)
-    text_message = _ticket_delivery_message(ticket, event, base_message)
-    html_message = _ticket_email_html_message(ticket, event, base_message)
+    if basket:
+        text_message += f"\nView basket: {_basket_url(basket, base_url)}\n"
+        text_message += f"Order ID: {basket.id}\n"
+        total = sum(_ticket_type_price(t, tt_map) or 0 for t in tickets)
+        if total > 0:
+            text_message += f"Total: {_format_price(event, total)}\n"
+
+    html_message = _render_ticket_email_html(
+        event, tickets, tt_map, body, basket=basket, base_url=base_url
+    )
+
     return subject, text_message, html_message
 
 
@@ -608,7 +1020,16 @@ def _supports_nostr_delivery(identifier: str | None) -> bool:
 async def _deliver_ticket_notifications(
     ticket: Ticket, event: Event
 ) -> TicketResendResult:
-    subject, text_message, html_message = _ticket_notification_payload(ticket, event)
+    tt_map = await _build_tt_map([ticket])
+    base_url = _resolve_base_url([ticket])
+    basket: Basket | None = None
+    if ticket.basket_id:
+        basket = await get_basket(ticket.basket_id)
+
+    subject, text_message, html_message = _build_ticket_email(
+        event, [ticket], tt_map, basket, base_url
+    )
+
     updated = False
     result = TicketResendResult(
         ticket=ticket,
@@ -720,6 +1141,45 @@ def _ticket_url(ticket: Ticket) -> str:
 def _ticket_image_url(ticket: Ticket, event: Event) -> str | None:
     base_url = (ticket.extra.ticket_base_url or settings.lnbits_baseurl).rstrip("/")
     return f"{base_url}/events/api/v1/qr/{ticket.id}"
+
+
+async def preview_ticket_email_html(
+    event: Event, basket: Basket | None, tickets: list[Ticket], base_url: str
+) -> tuple[str, str]:
+    tt_map = await _build_tt_map(tickets)
+    subject, text_message, html_message = _build_ticket_email(
+        event, tickets, tt_map, basket, base_url
+    )
+    return subject, html_message
+
+
+async def preview_admin_email_html(
+    event: Event, basket: Basket, tickets: list[Ticket], base_url: str
+) -> tuple[str, str]:
+    tt_map = await _build_tt_map(tickets)
+    count = len(tickets)
+    grouped = _grouped_ticket_types(tickets, tt_map)
+    ticket_details = "\n".join(
+        f"- {name} ×{qty}"
+        + (f" — {_format_price(event, price * qty)}" if price > 0 else "")
+        for name, qty, price in grouped
+    )
+    total = sum(price * qty for _, qty, price in grouped)
+    total_str = _format_price(event, total) if total > 0 else ""
+    basket_url = f"{base_url}/events/basket/{basket.id}"
+    text_message = (
+        f"New ticket sale for '{event.name}'\n"
+        f"{_format_event_dates(event)}\n\n"
+        f"Order ID: {basket.id}\n"
+        f"View basket: {basket_url}\n"
+        f"Buyer: {_display_name(basket.name)} ({basket.email or '—'})\n"
+        f"Tickets: {count}\n"
+        f"Total: {total_str}\n\n"
+        f"{ticket_details}"
+    )
+    subject = f"New sale: {count} ticket(s) for '{event.name}'"
+    html_message = _render_admin_email_html(event, basket, tickets, tt_map, base_url)
+    return subject, html_message
 
 
 async def refund_tickets(event_id: str):

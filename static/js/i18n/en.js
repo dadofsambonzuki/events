@@ -60,6 +60,8 @@ window.i18n.global.mergeLocaleMessage('en', {
     notification_body_label: 'Ticket notification body',
     notification_body_hint:
       'Shown before the ticket link in the paid ticket notification.',
+    preview_ticket_email: 'Preview ticket email',
+    preview_admin_email: 'Preview admin email',
     onchain_payments: 'Onchain payments',
     onchain_desc:
       'Accept Bitcoin onchain payments. Requires the SatsPay and Watchonly extensions to be installed and enabled.',

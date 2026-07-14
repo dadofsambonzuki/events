@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from http import HTTPStatus
 from io import BytesIO
-import json
 
 import pyqrcode  # type: ignore[import-untyped]
 from fastapi import (
@@ -11,7 +10,7 @@ from fastapi import (
     Query,
     Request,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from lnbits.core.crud import get_user
 from lnbits.core.models import WalletTypeInfo
 from lnbits.decorators import (
@@ -32,7 +31,9 @@ from .crud import (
     delete_ticket,
     delete_ticket_type,
     get_basket,
+    get_basket_tickets,
     get_event,
+    get_event_tickets,
     get_ticket,
     get_ticket_types,
     get_tickets,
@@ -63,6 +64,8 @@ from .services import (
     create_basket_with_charge,
     get_satspay_charge,
     handle_basket_payment,
+    preview_admin_email_html,
+    preview_ticket_email_html,
     refund_tickets,
     resend_ticket_email_notification,
     send_bulk_message,
@@ -292,6 +295,101 @@ async def api_event_email_message(
     return {"results": results}
 
 
+@events_api_router.get("/events/{event_id}/preview/ticket-email")
+async def api_preview_ticket_email(
+    event_id: str,
+    request: Request,
+    key: str | None = Query(None),
+    basket_id: str | None = Query(None),
+):
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    wallet = await _check_preview_key(event, key)
+    if not wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Invalid key."
+        )
+    base_url = str(request.base_url).rstrip("/")
+
+    basket = None
+    tickets: list[Ticket] = []
+    if basket_id:
+        basket = await get_basket(basket_id)
+        if basket and basket.event_id == event_id:
+            tickets = await get_basket_tickets(basket_id)
+    if not tickets:
+        tickets = [t for t in await get_event_tickets(event_id) if t.paid][:1]
+    if not tickets:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="No paid tickets found for this event.",
+        )
+    for t in tickets:
+        if not t.extra.ticket_base_url:
+            t.extra.ticket_base_url = base_url
+
+    subject, html = await preview_ticket_email_html(event, basket, tickets, base_url)
+    return HTMLResponse(content=html)
+
+
+@events_api_router.get("/events/{event_id}/preview/admin-email")
+async def api_preview_admin_email(
+    event_id: str,
+    request: Request,
+    key: str | None = Query(None),
+    basket_id: str | None = Query(None),
+):
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    wallet = await _check_preview_key(event, key)
+    if not wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail="Invalid key."
+        )
+    base_url = str(request.base_url).rstrip("/")
+
+    basket = None
+    tickets: list[Ticket] = []
+    if basket_id:
+        basket = await get_basket(basket_id)
+        if basket and basket.event_id == event_id:
+            tickets = await get_basket_tickets(basket_id)
+    if not basket or not tickets:
+        all_tickets = [t for t in await get_event_tickets(event_id) if t.paid]
+        if all_tickets:
+            tickets = all_tickets[:2]
+            for t in all_tickets:
+                if t.basket_id:
+                    basket = await get_basket(t.basket_id)
+                    if basket:
+                        break
+    if not basket or not tickets:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="No paid tickets/baskets found for this event.",
+        )
+    for t in tickets:
+        if not t.extra.ticket_base_url:
+            t.extra.ticket_base_url = base_url
+
+    subject, html = await preview_admin_email_html(event, basket, tickets, base_url)
+    return HTMLResponse(content=html)
+
+
+async def _check_preview_key(event: Event, key: str | None):
+    from lnbits.core.crud import get_wallet_for_key
+    wallet = await get_wallet_for_key(key)
+    if wallet and wallet.id == event.wallet:
+        return wallet
+    return None
+
+
 @events_api_router.get("/ticket-types/{event_id}")
 async def api_ticket_types(event_id: str) -> list[TicketType]:
     return await get_ticket_types(event_id)
@@ -447,7 +545,6 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
         totals=totals,
         payment_request=None,
         event_name=event.name,
-        event_image_url=event.banner,
         event_currency=event.currency,
         event_fiat_currency=event.fiat_currency,
     )
@@ -471,10 +568,6 @@ async def api_basket_satspay_webhook(
     request: Request,
 ):
     body = await request.json()
-    if isinstance(body, str):
-        import json
-
-        body = json.loads(body)
     charge_id = body.get("charge_id")
     logger.debug(f"SatsPay webhook for basket {basket_id}, charge {charge_id}")
 
@@ -527,7 +620,7 @@ async def api_tickets_paginated(
 
 
 @events_api_router.get("/tickets/{ticket_id}", response_model=PublicTicket)
-async def api_get_ticket(ticket_id: str) -> PublicTicket:
+async def api_get_ticket(ticket_id: str) -> Ticket:
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(
@@ -538,26 +631,7 @@ async def api_get_ticket(ticket_id: str) -> PublicTicket:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
-
-    from .crud import get_ticket_types as get_event_ticket_types
-    ticket_types = await get_event_ticket_types(ticket.event)
-    tt_name = ""
-    if ticket.ticket_type_id and ticket_types:
-        for tt in ticket_types:
-            if tt.id == ticket.ticket_type_id:
-                tt_name = tt.name
-                break
-
-    return PublicTicket(
-        event=ticket.event,
-        event_name=event.name,
-        ticket_type_name=tt_name,
-        name=ticket.name,
-        registered=ticket.registered,
-        paid=ticket.paid,
-        time=ticket.time,
-        reg_timestamp=ticket.reg_timestamp,
-    )
+    return ticket
 
 
 @events_api_router.post("/tickets/{event_id}")
@@ -654,7 +728,7 @@ async def api_ticket_deactivate(
 
 
 @events_api_router.put("/tickets/register/{ticket_id}")
-async def api_event_register_ticket(ticket_id: str) -> dict:
+async def api_event_register_ticket(ticket_id: str) -> Ticket:
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(
@@ -672,34 +746,10 @@ async def api_event_register_ticket(ticket_id: str) -> dict:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="Ticket already registered."
         )
-
-    event = await get_event(ticket.event)
     ticket.registered = True
     ticket.reg_timestamp = datetime.now(timezone.utc)
     ticket = await update_ticket(ticket)
-
-    from .crud import get_ticket_types as get_event_ticket_types
-    ticket_types = await get_event_ticket_types(ticket.event)
-    tt_name = ""
-    if ticket.ticket_type_id and ticket_types:
-        for tt in ticket_types:
-            if tt.id == ticket.ticket_type_id:
-                tt_name = tt.name
-                break
-
-    return {
-        "id": ticket.id,
-        "event": ticket.event,
-        "name": ticket.name or "",
-        "email": ticket.email or "",
-        "registered": ticket.registered,
-        "paid": ticket.paid,
-        "ticket_type_id": ticket.ticket_type_id,
-        "ticket_type_name": tt_name,
-        "time": ticket.time,
-        "reg_timestamp": ticket.reg_timestamp,
-        "extra": dict(ticket.extra) if ticket.extra else None,
-    }
+    return ticket
 
 
 @events_api_router.post("/tickets/{ticket_id}/resend-email")
