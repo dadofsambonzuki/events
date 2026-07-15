@@ -239,3 +239,11 @@ async def get_basket_tickets(basket_id: str) -> list[Ticket]:
         {"basket_id": basket_id},
         Ticket,
     )
+
+
+async def get_tickets_by_satspay_charge_id(charge_id: str) -> list[Ticket]:
+    return await db.fetchall(
+        "SELECT * FROM events.ticket WHERE json_extract(extra, '$.satspay_charge_id') = :charge_id",
+        {"charge_id": charge_id},
+        Ticket,
+    )

@@ -37,6 +37,7 @@ from .crud import (
     get_ticket,
     get_ticket_types,
     get_tickets,
+    get_tickets_by_satspay_charge_id,
     get_tickets_paginated,
     purge_unpaid_tickets,
     update_event as update_event_crud,
@@ -617,6 +618,35 @@ async def api_tickets_paginated(
         user = await get_user(key_info.wallet.user)
         wallet_ids = user.wallet_ids if user else []
     return await get_tickets_paginated(wallet_ids)
+
+
+@events_api_router.get("/tickets/by-charge/{charge_id}")
+async def api_get_tickets_by_charge(charge_id: str) -> list[PublicTicket]:
+    tickets = await get_tickets_by_satspay_charge_id(charge_id)
+    if not tickets:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="No tickets found for this charge."
+        )
+    event = await get_event(tickets[0].event)
+    event_name = event.name if event else ""
+    from .crud import get_ticket_types as get_event_ticket_types
+    ticket_types = await get_event_ticket_types(tickets[0].event)
+    tt_map = {tt.id: tt.name for tt in ticket_types}
+    result = []
+    for ticket in tickets:
+        result.append(
+            PublicTicket(
+                event=ticket.event,
+                event_name=event_name,
+                ticket_type_name=tt_map.get(ticket.ticket_type_id or "", ""),
+                name=ticket.name,
+                registered=ticket.registered,
+                paid=ticket.paid,
+                time=ticket.time,
+                reg_timestamp=ticket.reg_timestamp,
+            )
+        )
+    return result
 
 
 @events_api_router.get("/tickets/{ticket_id}", response_model=PublicTicket)
