@@ -609,7 +609,8 @@ window.PageEvents = {
           image_url: tt?.image_url || null,
           price: tt?.price || 0,
           max_tickets: tt?.max_tickets || 0,
-          available_from: tt?.available_from || event.event_start_date || '',
+          available_from:
+            tt?.available_from || new Date().toISOString().slice(0, 10),
           available_to: tt?.available_to || event.event_end_date || '',
           sort_order: tt?.sort_order || 0,
           active: tt?.extra?.active ?? true
