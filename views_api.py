@@ -13,7 +13,9 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, StreamingResponse
 from lnbits.core.crud import get_user
 from lnbits.core.models import WalletTypeInfo
+from lnbits.db import Filters
 from lnbits.decorators import (
+    parse_filters,
     require_admin_key,
     require_invoice_key,
 )
@@ -57,6 +59,7 @@ from .models import (
     PublicEvent,
     PublicTicket,
     Ticket,
+    TicketFilters,
     TicketPaymentRequest,
     TicketType,
 )
@@ -611,13 +614,14 @@ async def api_tickets(
 @events_api_router.get("/tickets/paginated")
 async def api_tickets_paginated(
     all_wallets: bool = Query(False),
+    filters: Filters = Depends(parse_filters(TicketFilters)),
     key_info: WalletTypeInfo = Depends(require_invoice_key),
 ):
     wallet_ids = [key_info.wallet.id]
     if all_wallets:
         user = await get_user(key_info.wallet.user)
         wallet_ids = user.wallet_ids if user else []
-    return await get_tickets_paginated(wallet_ids)
+    return await get_tickets_paginated(wallet_ids, filters)
 
 
 @events_api_router.get("/tickets/by-charge/{charge_id}")
