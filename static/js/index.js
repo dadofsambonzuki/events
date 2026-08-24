@@ -140,9 +140,11 @@ window.PageEvents = {
             available_from: '',
             available_to: '',
             sort_order: 0,
-            active: true
-          }
-        },
+active: true,
+            show_remaining: false,
+            remaining_threshold: 0
+           }
+         },
        ticketTypesByEvent: {},
       promoCodesDialog: {
         show: false,
@@ -613,7 +615,9 @@ window.PageEvents = {
             tt?.available_from || new Date().toISOString().slice(0, 10),
           available_to: tt?.available_to || event.event_end_date || '',
           sort_order: tt?.sort_order || 0,
-          active: tt?.extra?.active ?? true
+          active: tt?.extra?.active ?? true,
+          show_remaining: tt?.extra?.show_remaining ?? false,
+          remaining_threshold: tt?.extra?.remaining_threshold ?? 0
         }
       }
     },
@@ -651,13 +655,17 @@ window.PageEvents = {
         event_id: this.ticketTypeDialog.eventId,
         extra: {
           ...this.ticketTypeDialog.data.extra,
-          active: this.ticketTypeDialog.data.active
+          active: this.ticketTypeDialog.data.active,
+          show_remaining: this.ticketTypeDialog.data.show_remaining,
+          remaining_threshold: this.ticketTypeDialog.data.remaining_threshold
         }
       }
       if (!this.ticketTypeDialog.isEdit) {
         delete payload.id
       }
       delete payload.active
+      delete payload.show_remaining
+      delete payload.remaining_threshold
 
       const request = this.ticketTypeDialog.isEdit
         ? LNbits.api.request(

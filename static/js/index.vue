@@ -765,6 +765,21 @@
             :label="ticketTypeDialog.data.active ? $t('events.active') : $t('events.inactive')"
             left-label
           ></q-toggle>
+          <q-toggle
+            v-model="ticketTypeDialog.data.show_remaining"
+            :label="$t('events.show_remaining_label')"
+            left-label
+          ></q-toggle>
+          <q-input
+            v-if="ticketTypeDialog.data.show_remaining"
+            filled
+            dense
+            v-model.number="ticketTypeDialog.data.remaining_threshold"
+            type="number"
+            :label="$t('events.remaining_threshold_label')"
+            :hint="$t('events.remaining_threshold_hint')"
+            min="0"
+          ></q-input>
           <div class="row q-mt-lg">
             <q-btn
               v-if="ticketTypeDialog.isEdit"

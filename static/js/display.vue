@@ -51,10 +51,12 @@
                   {{ tt.price }} {{ basketCurrency }}
                 </q-chip>
               </div>
-              <div v-if="tt.max_tickets > 0" class="col-auto">
+              <div v-if="tt.max_tickets > 0 && tt.extra?.show_remaining" class="col-auto">
                 <q-chip outline>
                   <template v-if="tt.max_tickets - tt.sold > 0">
-                    {{ tt.max_tickets - tt.sold }} remaining
+                    <template v-if="!tt.extra.remaining_threshold || tt.max_tickets - tt.sold <= tt.extra.remaining_threshold">
+                      {{ tt.max_tickets - tt.sold }} remaining
+                    </template>
                   </template>
                   <template v-else>Sold out</template>
                 </q-chip>
