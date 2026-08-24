@@ -115,16 +115,6 @@ async def api_create_event(
     wallet: WalletTypeInfo = Depends(require_admin_key),
 ) -> Event:
     event = await create_event_crud(data)
-    if data.amount_tickets > 0 or data.price_per_ticket > 0:
-        default_tt = TicketType(
-            event_id=event.id,
-            name="General Admission",
-            price=data.price_per_ticket,
-            max_tickets=data.amount_tickets,
-            available_from=data.event_start_date,
-            available_to=data.event_end_date,
-        )
-        await create_ticket_type(default_tt)
     return event
 
 
