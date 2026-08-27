@@ -306,7 +306,7 @@ async def create_basket_with_charge(
                 wallet=event.wallet,
                 event=event.id,
                 name=data.name,
-        email=data.email or '',
+                email=data.email or '',
                 extra={
                     "ticket_type_id": tt.id,
                     "ticket_wave_title": tt.name,
@@ -315,6 +315,7 @@ async def create_basket_with_charge(
                     "ticket_base_url": base_url,
                     "sats_paid": totals.total,
                     "satspay_charge_id": basket.satspay_charge_id,
+                    "applied_promo_code": ",".join(promo_code_strings) if promo_code_strings else None,
                 },
                 ticket_type_id=tt.id,
                 basket_id=basket_id,
