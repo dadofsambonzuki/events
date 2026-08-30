@@ -1,4 +1,3 @@
-# page-events-display
 <template id="page-events-display">
   <div v-if="event" class="row q-col-gutter-md justify-center">
     <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
