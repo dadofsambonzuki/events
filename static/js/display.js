@@ -72,11 +72,7 @@ window.PageEventsDisplay = {
       return Boolean(this.event?.extra?.nostr_notifications)
     },
     acceptedPaymentMethods() {
-      const pm = this.event?.extra?.payment_methods || []
-      if (pm.length) return pm
-      const methods = ['ln']
-      if (this.event?.allow_fiat) methods.push('fiat')
-      return methods
+      return this.event?.extra?.payment_methods || []
     }
   },
   methods: {

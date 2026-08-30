@@ -232,10 +232,6 @@ async def create_basket_with_charge(
 
     if totals.total > 0:
         methods = event.extra.payment_methods or []
-        if not methods:
-            methods = ["ln"]
-            if event.allow_fiat:
-                methods.append("fiat")
 
         internal_base = f"http://{_internal_host()}:{settings.port}"
         webhook_url = f"{internal_base}/events/api/v1/baskets/{basket_id}/satspay-webhook"
