@@ -116,7 +116,6 @@ class PublicEvent(BaseModel):
     admin_email: str | None = None
     allow_fiat: bool = False
     fiat_currency: str = "GBP"
-    price_per_ticket: float
     banner: str | None
     extra: EventExtra = Field(default_factory=EventExtra)
 
