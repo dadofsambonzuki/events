@@ -208,7 +208,10 @@ async def api_get_event(event_id: str) -> Event:
             status_code=HTTPStatus.GONE, detail="Ticket closing date has passed."
         )
 
-    return event
+    public = Event(
+        **{**event.dict(), "extra": {**event.extra.dict(), "promo_codes": []}}
+    )
+    return public
 
 
 @events_api_router.put("/events/{event_id}/cancel")
