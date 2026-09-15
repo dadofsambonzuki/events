@@ -89,6 +89,10 @@
       if (!id) return ''
       return id.length > 12 ? `${id.slice(0, 6)}...${id.slice(-6)}` : id
     },
+    formatDate(value) {
+      const d = new Date(value)
+      return isNaN(d) ? '' : d.toLocaleDateString()
+    },
     startPolling() {
       if (this.pollTimer) return
       this.pollTimer = setInterval(async () => {

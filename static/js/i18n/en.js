@@ -104,6 +104,8 @@ window.i18n.global.mergeLocaleMessage('en', {
     col_registered: 'Registered',
     col_nostr: 'Nostr',
     col_deactivated: 'Deactivated',
+    purchase_date: 'Purchase Date',
+    col_purchase_date: 'Purchase Date',
     col_promo_code: 'Promo Code',
     col_satspay: 'Payment',
     col_yes: 'Yes',

@@ -79,6 +79,15 @@ window.PageEvents = {
           field: row => row.extra?.deactivated ? this.$t('events.col_yes') : this.$t('events.col_no')
         },
         {
+          name: 'purchase_date',
+          align: 'left',
+          label: this.$t('events.col_purchase_date'),
+          field: row => {
+            const d = new Date(row.time)
+            return isNaN(d) ? '' : d.toLocaleDateString()
+          }
+        },
+        {
           name: 'promo_code',
           align: 'left',
           label: this.$t('events.col_promo_code'),

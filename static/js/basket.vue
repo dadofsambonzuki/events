@@ -57,6 +57,9 @@
                   </a>
                   <span v-else v-text="basket.id"></span>
                 </div>
+                <div v-if="basket.time" class="text-caption q-mt-xs text-grey-7">
+                  <span v-text="$t('events.purchase_date') + ': ' + formatDate(basket.time)"></span>
+                </div>
               </div>
               <div class="col-12 col-sm-6 text-left text-sm-right">
                 <div class="text-caption text-grey-7" v-text="$t('events.total')"></div>
