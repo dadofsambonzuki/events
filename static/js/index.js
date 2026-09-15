@@ -84,7 +84,7 @@ window.PageEvents = {
           label: this.$t('events.col_purchase_date'),
           field: row => {
             const d = new Date(row.time)
-            return isNaN(d) ? '' : d.toLocaleDateString()
+            return isNaN(d) ? '' : this.formatISODate(d)
           }
         },
         {
@@ -198,6 +198,14 @@ active: true,
     }
   },
   methods: {
+    formatISODate(value) {
+      const d = new Date(value)
+      if (isNaN(d)) return ''
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    },
     ticketTypeChipLabel(tt) {
       const event = this.events.find(e => e.id === tt.event_id)
       const currency = event?.currency || 'sat'
