@@ -14,10 +14,22 @@ class PromoCode(BaseModel):
     combinable: bool = True
     max_uses: int | None = None
     used_count: int = 0
+    type: str = "code"
+    redemptions_per_ticket: int = 1
 
     @validator("code")
     def uppercase_code(cls, v):
         return v.upper()
+
+    @validator("type")
+    def validate_type(cls, v):
+        assert v in ("code", "ticket"), "type must be 'code' or 'ticket'."
+        return v
+
+    @validator("redemptions_per_ticket")
+    def validate_redemptions_per_ticket(cls, v):
+        assert v is not None and v >= 1, "redemptions_per_ticket must be >= 1."
+        return v
 
     @validator("discount_percent")
     def validate_discount_percent(cls, v):
@@ -134,6 +146,7 @@ class TicketExtra(BaseModel):
     refunded: bool = False
     deactivated: bool = False
     satspay_charge_id: str | None = None
+    ticket_id_voucher_redemptions: list = Field(default_factory=list)
 
 
 class CreateTicket(BaseModel):

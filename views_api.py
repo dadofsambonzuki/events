@@ -534,6 +534,7 @@ async def api_get_basket(basket_id: str) -> BasketResponse:
         [{"ticket_type_id": t.ticket_type_id or "", "quantity": 1}
          for t in tickets],
         basket.promo_codes,
+        allow_consumed=True,
     )
 
     return BasketResponse(

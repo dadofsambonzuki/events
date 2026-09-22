@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import smtplib
 from asyncio.tasks import create_task
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html import escape
@@ -40,6 +41,7 @@ from .models import (
     Event,
     EventExtra,
     NotificationDeliveryResult,
+    PromoCode,
     Ticket,
     TicketResendResult,
     TicketType,
@@ -119,6 +121,131 @@ def _apply_promo_codes(
     return total_discount, discounts_applied
 
 
+# ---------------------------------------------------------------------------
+# Ticket-ID vouchers ("type": "ticket" promo codes)
+#
+# A ticket-type promo doesn't use a fixed code string. Instead the buyer
+# submits an EXISTING tickets.id as the discount code; it is resolved against
+# the tickets table at checkout. Single/multi-use is tracked PER SOURCE TICKET
+# in the source ticket's TicketExtra (``ticket_id_voucher_redemptions``), not
+# on the promo row, because the "code" is dynamic. A redemption is reserved
+# ("pending") at checkout creation and only finalized on payment, so two
+# concurrent checkouts can't both consume the last slot.
+# ---------------------------------------------------------------------------
+TICKET_VOUCHER_CODE = "TICKETID"
+_VOUCHER_TTL_SECONDS = 24 * 3600  # matches the satspay charge time (1440 min)
+
+# Per-event locks so concurrent checkouts race on reservation in one process.
+_reservation_locks: dict[str, asyncio.Lock] = {}
+
+
+def _reservation_lock(event_id: str) -> asyncio.Lock:
+    if event_id not in _reservation_locks:
+        _reservation_locks[event_id] = asyncio.Lock()
+    return _reservation_locks[event_id]
+
+
+def _find_ticket_voucher_promo(event: Event) -> PromoCode | None:
+    for promo in event.extra.promo_codes:
+        if promo.type == "ticket" and promo.active:
+            return promo
+    return None
+
+
+async def _resolve_ticket_id_voucher(event: Event, ticket_id: str) -> Ticket | None:
+    if not ticket_id:
+        return None
+    source = await get_ticket(ticket_id)
+    if not source:
+        return None
+    if not source.paid or source.extra.deactivated:
+        return None
+    if source.event != event.id:
+        return None
+    return source
+
+
+def _active_redemption_count(redemptions: list, now: datetime) -> int:
+    count = 0
+    for r in redemptions or []:
+        status = r.get("status")
+        if status == "completed":
+            count += 1
+            continue
+        if status == "pending":
+            expires_at = r.get("expires_at")
+            if expires_at:
+                try:
+                    exp = datetime.fromisoformat(expires_at)
+                except (TypeError, ValueError):
+                    exp = None
+                if exp is not None and exp > now:
+                    count += 1
+    return count
+
+
+def _prune_expired_redemptions(redemptions: list, now: datetime) -> list:
+    kept = []
+    for r in redemptions or []:
+        if r.get("status") == "pending":
+            expires_at = r.get("expires_at")
+            if expires_at:
+                try:
+                    exp = datetime.fromisoformat(expires_at)
+                except (TypeError, ValueError):
+                    exp = None
+                if exp is not None and exp <= now:
+                    continue  # expired pending reservation -> release slot
+        kept.append(r)
+    return kept
+
+
+def _ticket_voucher_available(source: Ticket, promo: PromoCode, now: datetime) -> bool:
+    count = _active_redemption_count(source.extra.ticket_id_voucher_redemptions, now)
+    return count < (promo.redemptions_per_ticket or 1)
+
+
+async def _reserve_ticket_voucher(
+    event: Event, source_ticket_id: str, basket_id: str
+) -> None:
+    """Authoritative, concurrency-safe reservation of one voucher slot."""
+    promo = _find_ticket_voucher_promo(event)
+    if not promo:
+        raise ValueError("Ticket-ID discount is not configured for this event.")
+    source = await _resolve_ticket_id_voucher(event, source_ticket_id)
+    if not source:
+        raise ValueError("Invalid or ineligible ticket ID for discount.")
+    now = datetime.now(timezone.utc)
+    if not _ticket_voucher_available(source, promo, now):
+        raise ValueError("This ticket has already been used for its discount.")
+    redemptions = _prune_expired_redemptions(
+        source.extra.ticket_id_voucher_redemptions, now
+    )
+    redemptions.append(
+        {
+            "basket_id": basket_id,
+            "status": "pending",
+            "time": now.isoformat(),
+            "expires_at": (now + timedelta(seconds=_VOUCHER_TTL_SECONDS)).isoformat(),
+        }
+    )
+    source.extra.ticket_id_voucher_redemptions = redemptions
+    await update_ticket(source)
+
+
+async def _finalize_ticket_voucher(source: Ticket, basket_id: str) -> None:
+    redemptions = list(source.extra.ticket_id_voucher_redemptions or [])
+    changed = False
+    for r in redemptions:
+        if r.get("basket_id") == basket_id and r.get("status") == "pending":
+            r["status"] = "completed"
+            r.pop("expires_at", None)
+            changed = True
+    if changed:
+        source.extra.ticket_id_voucher_redemptions = redemptions
+        await update_ticket(source)
+
+
 async def _increment_promo_uses(event: Event, promo_codes: list[BasketDiscount]) -> None:
     if not promo_codes:
         return
@@ -133,7 +260,11 @@ async def _increment_promo_uses(event: Event, promo_codes: list[BasketDiscount])
 
 
 async def calculate_basket_total(
-    event: Event, items: list[dict], promo_codes: list[str]
+    event: Event,
+    items: list[dict],
+    promo_codes: list[str],
+    *,
+    allow_consumed: bool = False,
 ) -> BasketTotals:
     ticket_types = await get_ticket_types(event.id)
     types_by_id = {tt.id: tt for tt in ticket_types}
@@ -148,11 +279,47 @@ async def calculate_basket_total(
     if event.currency.lower() in ("sat", "sats"):
         subtotal = int(subtotal)
 
-    promos = [
-        p
-        for p in event.extra.promo_codes
-        if p.code in [c.upper() for c in promo_codes]
-    ]
+    submitted = [c.upper() for c in promo_codes]
+    promos = [p for p in event.extra.promo_codes if p.code in submitted]
+
+    # Resolve ticket-ID vouchers: a submitted code that is not a configured
+    # promo string is treated as an existing ticket id. Only allowed for a
+    # single-ticket purchase (basket of exactly one ticket). Ticket ids are
+    # case-sensitive, so resolve against the RAW submitted codes, not the
+    # upper-cased forms used for static promo matching.
+    single_ticket = sum(item.get("quantity", 1) for item in items) == 1
+    voucher_promo = _find_ticket_voucher_promo(event)
+    if single_ticket and voucher_promo:
+        matched_codes = {p.code for p in promos}
+        for code in promo_codes:
+            if code.upper() in matched_codes:
+                continue
+            source = await _resolve_ticket_id_voucher(event, code)
+            if not source:
+                continue
+            # allow_consumed is used for re-displaying an already-created/
+            # paid basket: enforcement happens at checkout creation, so an
+            # overview must show the applied voucher even once the source
+            # ticket's redemption slots are consumed.
+            if not allow_consumed and not _ticket_voucher_available(
+                source, voucher_promo, datetime.now(timezone.utc)
+            ):
+                continue
+            promos.append(
+                # construct() bypasses the code-uppercasing validator, keeping
+                # the source ticket id's original case (it is a PK lookup key).
+                PromoCode.construct(
+                    code=code,
+                    type="ticket",
+                    discount_percent=voucher_promo.discount_percent,
+                    discount_fixed=voucher_promo.discount_fixed,
+                    active=True,
+                    combinable=False,
+                    max_uses=None,
+                    used_count=0,
+                )
+            )
+
     promos.sort(
         key=lambda p: _effective_discount(p, subtotal),
         reverse=True,
@@ -212,7 +379,26 @@ async def create_basket_with_charge(
     )
 
     basket_id = urlsafe_short_hash()
-    promo_code_strings = [c.upper() for c in data.promo_codes]
+    # Keep the RAW submitted codes so ticket-ID vouchers (case-sensitive)
+    # survive into basket.promo_codes. Static-code matching upper-cases at the
+    # point of comparison.
+    promo_code_strings = list(data.promo_codes)
+
+    # Authoritatively reserve ticket-ID voucher redemptions on their source
+    # tickets. This is the write that closes the single-use race: it happens
+    # under a per-event lock, before any charge is created, so two concurrent
+    # checkouts can't both claim the last available slot.
+    if sum(i.quantity for i in data.items) == 1:
+        static_codes = {p.code for p in event.extra.promo_codes}
+        voucher_discounts = [
+            d
+            for d in totals.discounts_applied
+            if d.code not in static_codes
+        ]
+        if voucher_discounts:
+            async with _reservation_lock(event.id):
+                for discount in voucher_discounts:
+                    await _reserve_ticket_voucher(event, discount.code, basket_id)
 
     basket = Basket(
         id=basket_id,
@@ -336,6 +522,15 @@ async def _activate_basket_tickets(
     basket.paid = True
     await update_basket(basket)
     await _increment_promo_uses_from_basket(event, basket)
+    # Finalize ticket-ID voucher redemptions (pending -> completed) now that
+    # this basket is actually paid.
+    static_codes = {p.code for p in event.extra.promo_codes}
+    for code in basket.promo_codes or []:
+        if code.upper() in static_codes:
+            continue
+        source = await _resolve_ticket_id_voucher(event, code)
+        if source:
+            await _finalize_ticket_voucher(source, basket.id)
     _send_basket_notifications_in_background(basket, tickets, event)
     if event.admin_email:
         create_task(_send_admin_sale_notification(event, basket, tickets))
@@ -791,7 +986,7 @@ async def _increment_promo_uses_from_basket(
 ) -> None:
     if not basket.promo_codes:
         return
-    applied_codes = set(basket.promo_codes)
+    applied_codes = {c.upper() for c in basket.promo_codes}
     modified = False
     for promo in event.extra.promo_codes:
         if promo.code in applied_codes:

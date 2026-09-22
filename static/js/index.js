@@ -173,12 +173,14 @@ active: true,
         codeIndex: -1,
         data: {
           code: '',
+          type: 'code',
           discount_percent: null,
           discount_fixed: null,
           active: true,
           combinable: true,
           max_uses: null,
-          used_count: 0
+          used_count: 0,
+          redemptions_per_ticket: 1
         },
         discountType: 'percent'
       },
@@ -243,10 +245,24 @@ active: true,
     normalizePromoCodes(promoCodes = []) {
       return promoCodes
         .filter(code => code.code?.trim() !== '')
-        .map(code => ({
-          ...code,
-          code: code.code.trim().toUpperCase()
-        }))
+        .map(code => {
+          code = {
+            type: 'code',
+            redemptions_per_ticket: 1,
+            ...code
+          }
+          if (code.type === 'ticket') {
+            // A ticket voucher redeems with any existing ticket id; the
+            // code field is just an inert sentinel and it must not stack.
+            code.code = 'TICKETID'
+            code.combinable = false
+            code.max_uses = null
+          }
+          return {
+            ...code,
+            code: code.code.trim().toUpperCase()
+          }
+        })
     },
     templateDownloadUrl() {
       return '/events/static/image/ticket.jpg'
@@ -784,12 +800,14 @@ active: true,
       const idx = this.promoCodesDialog.data.extra.promo_codes.length
       this.promoCodesDialog.data.extra.promo_codes.push({
         code: '',
+        type: 'code',
         discount_percent: undefined,
         discount_fixed: undefined,
         active: true,
         combinable: true,
         max_uses: null,
-        used_count: 0
+        used_count: 0,
+        redemptions_per_ticket: 1
       })
       this.promoDiscountTypes[idx] = 'percent'
     },
@@ -855,15 +873,26 @@ active: true,
       this.editPromoCodeDialog.codeIndex = -1
       this.editPromoCodeDialog.data = {
         code: '',
+        type: 'code',
         discount_percent: null,
         discount_fixed: null,
         active: true,
         combinable: true,
         max_uses: null,
-        used_count: 0
+        used_count: 0,
+        redemptions_per_ticket: 1
       }
       this.editPromoCodeDialog.discountType = 'percent'
       this.editPromoCodeDialog.show = true
+    },
+    onPromoTypeChange(type) {
+      const data = this.editPromoCodeDialog.data
+      if (!data) return
+      if (type === 'ticket') {
+        data.combinable = false
+        data.max_uses = null
+        if (data.redemptions_per_ticket == null) data.redemptions_per_ticket = 1
+      }
     },
     saveEditPromoCode() {
       const {eventId, codeIndex, data, discountType} = this.editPromoCodeDialog
@@ -877,6 +906,11 @@ active: true,
         code.discount_percent = null
       } else {
         code.discount_fixed = null
+      }
+      if (code.type === 'ticket') {
+        code.code = 'TICKETID'
+        code.combinable = false
+        code.max_uses = null
       }
       code.code = code.code.trim().toUpperCase()
 
