@@ -197,8 +197,10 @@ class PublicTicket(BaseModel):
     event_name: str = ""
     ticket_type_name: str = ""
     name: str
+    email: str | None = None
     registered: bool
     paid: bool
+    deactivated: bool = False
     time: datetime
     reg_timestamp: datetime | None = None
 

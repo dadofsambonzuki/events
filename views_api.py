@@ -648,7 +648,7 @@ async def api_get_tickets_by_charge(charge_id: str) -> list[PublicTicket]:
 
 
 @events_api_router.get("/tickets/{ticket_id}", response_model=PublicTicket)
-async def api_get_ticket(ticket_id: str) -> Ticket:
+async def api_get_ticket(ticket_id: str) -> PublicTicket:
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise HTTPException(
@@ -659,7 +659,22 @@ async def api_get_ticket(ticket_id: str) -> Ticket:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
         )
-    return ticket
+    from .crud import get_ticket_types as get_event_ticket_types
+
+    ticket_types = await get_event_ticket_types(ticket.event)
+    tt_map = {tt.id: tt.name for tt in ticket_types}
+    return PublicTicket(
+        event=ticket.event,
+        event_name=event.name,
+        ticket_type_name=tt_map.get(ticket.ticket_type_id or "", ""),
+        name=ticket.name,
+        email=ticket.email,
+        registered=ticket.registered,
+        paid=ticket.paid,
+        deactivated=ticket.extra.deactivated,
+        time=ticket.time,
+        reg_timestamp=ticket.reg_timestamp,
+    )
 
 
 @events_api_router.post("/tickets/{event_id}")

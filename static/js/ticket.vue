@@ -5,7 +5,7 @@
         <q-card-section class="q-pa-none text-center">
           <h3 class="q-my-sm" v-text="eventName"></h3>
           <h5 v-if="ticketTypeName" class="q-my-sm" v-text="ticketTypeName"></h5>
-          <div v-if="ticket && ticket.extra?.deactivated" class="q-mb-md">
+          <div v-if="deactivated" class="q-mb-md">
             <q-badge
               color="negative"
               class="q-pa-sm"
@@ -26,6 +26,48 @@
               <span v-text="$t('events.print')"></span>
             </q-btn>
           </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card class="q-pa-lg" v-if="ticketName || ticketEmail || ticketTypeName || purchaseDate">
+        <q-card-section class="q-pa-none">
+          <div class="text-subtitle1 q-mb-sm" v-text="$t('events.ticket_details')"></div>
+          <q-list separator dense>
+            <q-item v-if="ticketTypeName">
+              <q-item-section side>
+                <span class="text-caption text-grey-7" v-text="$t('events.col_ticket_type') + ':'"></span>
+              </q-item-section>
+              <q-item-section v-text="ticketTypeName"></q-item-section>
+            </q-item>
+            <q-item v-if="ticketName">
+              <q-item-section side>
+                <span class="text-caption text-grey-7" v-text="$t('events.name_label')"></span>
+              </q-item-section>
+              <q-item-section v-text="ticketName"></q-item-section>
+            </q-item>
+            <q-item v-if="ticketEmail">
+              <q-item-section side>
+                <span class="text-caption text-grey-7" v-text="$t('events.email_label')"></span>
+              </q-item-section>
+              <q-item-section v-text="ticketEmail"></q-item-section>
+            </q-item>
+            <q-item v-if="purchaseDate">
+              <q-item-section side>
+                <span class="text-caption text-grey-7" v-text="$t('events.purchase_date') + ':'"></span>
+              </q-item-section>
+              <q-item-section v-text="purchaseDate"></q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section side>
+                <span class="text-caption text-grey-7" v-text="$t('events.col_registered') + ':'"></span>
+              </q-item-section>
+              <q-item-section>
+                <q-badge :color="registered ? 'positive' : 'grey'" outline>
+                  <span v-text="registered ? $t('events.yes') : $t('events.no')"></span>
+                </q-badge>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </q-card-section>
       </q-card>
     </div>

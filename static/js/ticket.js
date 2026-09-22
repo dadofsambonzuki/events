@@ -6,11 +6,22 @@
       ticket: null,
       eventName: '',
       ticketTypeName: '',
+      ticketName: '',
+      ticketEmail: '',
+      purchaseDate: '',
+      registered: false,
+      deactivated: false,
       printMode: false,
       qrSrc: ''
     }
   },
     methods: {
+      formatDate(value) {
+        if (!value) return ''
+        const d = new Date(value)
+        if (isNaN(d)) return ''
+        return Quasar.date.formatDate(d, 'YYYY-MM-DD HH:mm')
+      },
       copyTicketUrl() {
         const url = `${window.location.origin}/events/ticket/${this.ticketId}`
         navigator.clipboard.writeText(url).then(() => {
@@ -49,6 +60,11 @@
       this.ticket = data
       this.eventName = data.event_name || ''
       this.ticketTypeName = data.ticket_type_name || ''
+      this.ticketName = data.name || ''
+      this.ticketEmail = data.email || ''
+      this.purchaseDate = this.formatDate(data.time)
+      this.registered = !!data.registered
+      this.deactivated = !!data.deactivated
     } catch (error) {
       LNbits.utils.notifyApiError(error)
     }
