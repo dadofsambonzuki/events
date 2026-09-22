@@ -11,10 +11,18 @@
       purchaseDate: '',
       registered: false,
       deactivated: false,
+      paid: false,
       printMode: false,
       qrSrc: ''
     }
   },
+    computed: {
+      ticketStatus() {
+        if (this.deactivated) return this.$t('events.ticket_deactivated')
+        if (this.paid) return this.$t('events.ticket_paid')
+        return this.$t('events.ticket_pending')
+      }
+    },
     methods: {
       formatDate(value) {
         if (!value) return ''
@@ -65,6 +73,7 @@
       this.purchaseDate = this.formatDate(data.time)
       this.registered = !!data.registered
       this.deactivated = !!data.deactivated
+      this.paid = !!data.paid
     } catch (error) {
       LNbits.utils.notifyApiError(error)
     }

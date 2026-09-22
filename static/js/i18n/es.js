@@ -156,6 +156,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     ticket_paid: 'Pagado',
     ticket_not_paid: 'No pagado',
     ticket_deactivated: 'Desactivada',
+    ticket_pending: 'Pendiente',
     deactivate_ticket: 'Desactivar entrada',
     activate_ticket: 'Activar entrada',
     checked_in: 'Registrado',

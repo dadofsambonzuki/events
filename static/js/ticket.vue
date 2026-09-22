@@ -1,73 +1,76 @@
 <template id="page-events-ticket">
   <div class="row q-col-gutter-md justify-center">
-    <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
-      <q-card class="q-pa-lg">
-        <q-card-section class="q-pa-none text-center">
-          <h3 class="q-my-sm" v-text="eventName"></h3>
-          <h5 v-if="ticketTypeName" class="q-my-sm" v-text="ticketTypeName"></h5>
-          <div v-if="deactivated" class="q-mb-md">
-            <q-badge
-              color="negative"
-              class="q-pa-sm"
-              v-text="$t('events.ticket_deactivated')"
-            ></q-badge>
+    <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+      <q-card>
+        <q-card-section>
+          <div class="row items-center q-col-gutter-md">
+            <div class="col-auto">
+              <q-avatar
+                :color="paid ? 'positive' : 'primary'"
+                text-color="white"
+                size="64px"
+                :icon="paid ? 'check_circle' : 'hourglass_empty'"
+              ></q-avatar>
+            </div>
+            <div class="col">
+              <h4 class="q-my-xs" v-text="eventName"></h4>
+              <div class="text-caption text-grey-7">
+                <q-badge :color="deactivated ? 'negative' : (paid ? 'positive' : 'warning')" class="q-mt-xs">
+                  <span v-text="ticketStatus"></span>
+                </q-badge>
+              </div>
+            </div>
           </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card>
+        <q-card-section>
+          <div class="row q-col-gutter-md items-start">
+            <div class="col-12 col-sm-6">
+              <div class="text-caption text-grey-7" v-text="$t('events.col_ticket_type')"></div>
+              <div class="text-body1" v-text="ticketTypeName"></div>
+              <div v-if="ticketTypeName || ticketName" class="q-mt-sm">
+                <div class="text-caption text-grey-7" v-text="$t('events.name_label')"></div>
+                <div class="text-body1" v-text="ticketName"></div>
+              </div>
+              <div v-if="ticketEmail" class="text-caption q-mt-sm text-grey-7" v-text="ticketEmail"></div>
+              <div v-if="purchaseDate" class="text-caption q-mt-sm text-grey-7">
+                <span v-text="$t('events.purchase_date') + ': ' + purchaseDate"></span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 text-left text-sm-right">
+              <div class="text-caption text-grey-7" v-text="$t('events.col_registered')"></div>
+              <div class="q-mt-xs">
+                <q-badge :color="registered ? 'positive' : 'grey'" outline>
+                  <span v-text="registered ? $t('events.yes') : $t('events.no')"></span>
+                </q-badge>
+              </div>
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-separator></q-separator>
+
+        <q-card-section class="text-center">
           <lnbits-qrcode
             :value="`ticket://${ticketId}`"
             :options="{width: 500}"
             :show-buttons="false"
             :nfc="false"
           ></lnbits-qrcode>
-          <div class="q-mt-md">
-            <q-btn unelevated color="positive" @click="copyTicketUrl">
-              <span v-text="$t('events.copy_url')"></span>
-            </q-btn>
-            <q-btn unelevated color="positive" @click="printWindow" class="q-ml-sm">
-              <span v-text="$t('events.print')"></span>
-            </q-btn>
+          <div class="row q-col-gutter-sm justify-center q-mt-md">
+            <div class="col-12 col-sm-auto">
+              <q-btn unelevated color="positive" class="full-width" @click="copyTicketUrl">
+                <span v-text="$t('events.copy_url')"></span>
+              </q-btn>
+            </div>
+            <div class="col-12 col-sm-auto">
+              <q-btn unelevated color="positive" class="full-width" @click="printWindow">
+                <span v-text="$t('events.print')"></span>
+              </q-btn>
+            </div>
           </div>
-        </q-card-section>
-      </q-card>
-
-      <q-card class="q-pa-lg" v-if="ticketName || ticketEmail || ticketTypeName || purchaseDate">
-        <q-card-section class="q-pa-none">
-          <div class="text-subtitle1 q-mb-sm" v-text="$t('events.ticket_details')"></div>
-          <q-list separator dense>
-            <q-item v-if="ticketTypeName">
-              <q-item-section side>
-                <span class="text-caption text-grey-7" v-text="$t('events.col_ticket_type') + ':'"></span>
-              </q-item-section>
-              <q-item-section v-text="ticketTypeName"></q-item-section>
-            </q-item>
-            <q-item v-if="ticketName">
-              <q-item-section side>
-                <span class="text-caption text-grey-7" v-text="$t('events.name_label')"></span>
-              </q-item-section>
-              <q-item-section v-text="ticketName"></q-item-section>
-            </q-item>
-            <q-item v-if="ticketEmail">
-              <q-item-section side>
-                <span class="text-caption text-grey-7" v-text="$t('events.email_label')"></span>
-              </q-item-section>
-              <q-item-section v-text="ticketEmail"></q-item-section>
-            </q-item>
-            <q-item v-if="purchaseDate">
-              <q-item-section side>
-                <span class="text-caption text-grey-7" v-text="$t('events.purchase_date') + ':'"></span>
-              </q-item-section>
-              <q-item-section v-text="purchaseDate"></q-item-section>
-            </q-item>
-            <q-item>
-              <q-item-section side>
-                <span class="text-caption text-grey-7" v-text="$t('events.col_registered') + ':'"></span>
-              </q-item-section>
-              <q-item-section>
-                <q-badge :color="registered ? 'positive' : 'grey'" outline>
-                  <span v-text="registered ? $t('events.yes') : $t('events.no')"></span>
-                </q-badge>
-              </q-item-section>
-            </q-item>
-          </q-list>
         </q-card-section>
       </q-card>
     </div>

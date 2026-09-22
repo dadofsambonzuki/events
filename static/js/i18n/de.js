@@ -157,6 +157,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     ticket_paid: 'Bezahlt',
     ticket_not_paid: 'Nicht bezahlt',
     ticket_deactivated: 'Deaktiviert',
+    ticket_pending: 'Ausstehend',
     deactivate_ticket: 'Ticket deaktivieren',
     activate_ticket: 'Ticket aktivieren',
     checked_in: 'Eingecheckt',
