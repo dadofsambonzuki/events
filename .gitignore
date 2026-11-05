@@ -3,3 +3,5 @@ node_modules
 .mypy_cache
 .venv
 data/
+
+ext_events.sqlite3
