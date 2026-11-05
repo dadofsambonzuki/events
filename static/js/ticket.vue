@@ -53,6 +53,21 @@
         <q-separator></q-separator>
 
         <q-card-section class="text-center">
+          <div class="text-caption text-grey-7" v-text="$t('events.ticket_id_label')"></div>
+          <div class="row items-center justify-center q-gutter-x-xs ticket-id-row">
+            <span class="ticket-id" v-text="ticketId"></span>
+            <q-btn
+              flat
+              round
+              dense
+              size="sm"
+              icon="content_copy"
+              :aria-label="$t('events.copy_ticket_id')"
+              @click="copyTicketId"
+            >
+              <q-tooltip v-text="$t('events.copy_ticket_id')"></q-tooltip>
+            </q-btn>
+          </div>
           <lnbits-qrcode
             :value="`ticket://${ticketId}`"
             :options="{width: 500}"
@@ -91,6 +106,20 @@
 </template>
 
 <style>
+  /* The claim flow asks buyers to paste this, so it must be readable and
+     selectable on a phone, and must not push the copy icon off the row. */
+  .ticket-id-row {
+    flex-wrap: nowrap;
+  }
+  .ticket-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    user-select: all;
+  }
+
 @media print {
   @page {
     size: auto;

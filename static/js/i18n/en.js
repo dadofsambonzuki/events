@@ -315,6 +315,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     ticket_count_many: '{count} Tickets',
     show_ticket: 'Show Ticket',
     copy_url: 'Copy URL',
+    ticket_id_label: 'Ticket ID',
     copy_ticket_id: 'Copy ticket ID',
     copy_ticket_id_done: 'Ticket ID copied',
     continue_payment: 'Continue to Payment',

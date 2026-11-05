@@ -312,6 +312,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     ticket_count_many: '{count} Tickets',
     show_ticket: 'Ticket anzeigen',
     copy_url: 'Link kopieren',
+    ticket_id_label: 'Ticket-ID',
     copy_ticket_id: 'Ticket-ID kopieren',
     copy_ticket_id_done: 'Ticket-ID kopiert',
     continue_payment: 'Zahlung fortsetzen',

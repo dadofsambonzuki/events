@@ -311,6 +311,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     ticket_count_many: '{count} entradas',
     show_ticket: 'Mostrar entrada',
     copy_url: 'Copiar enlace',
+    ticket_id_label: 'ID de entrada',
     copy_ticket_id: 'Copiar ID de entrada',
     copy_ticket_id_done: 'ID de entrada copiado',
     continue_payment: 'Continuar con el pago',
