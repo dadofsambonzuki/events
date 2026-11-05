@@ -420,3 +420,37 @@ def test_addon_alone_prompts_for_the_ticket_id():
         )
         assert supplied.pending == [] and supplied.rejections == []
     asyncio.run(run())
+
+
+def test_spent_plain_code_says_so():
+    """A plain code at its max_uses used to be skipped silently, so the buyer
+    saw "no valid promo codes" -- indistinguishable from a typo."""
+    async def run():
+        ev = await make_event()
+        ev.extra.promo_codes.append(
+            M.PromoCode(
+                code="SPENT", discount_percent=100, max_uses=1, used_count=1,
+                active=True,
+            )
+        )
+        ev.extra.promo_codes.append(
+            M.PromoCode(
+                code="FRESH", discount_percent=50, max_uses=2, used_count=0,
+                active=True,
+            )
+        )
+        await crud.update_event(ev)
+
+        spent = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": WEEKEND, "quantity": 1}], ["spent"]
+        )
+        assert spent.discount == 0
+        assert [(r.code, r.reason) for r in spent.rejections] == [
+            ("spent", "promo_uses_exhausted")
+        ], "say the offer is used up, echoing the token the buyer typed"
+
+        fresh = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": WEEKEND, "quantity": 1}], ["fresh"]
+        )
+        assert fresh.discount == 74.5 and fresh.rejections == [], "a live code stays quiet"
+    asyncio.run(run())

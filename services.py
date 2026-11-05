@@ -112,7 +112,11 @@ def _promo_scope(promo) -> list:
 
 
 def _apply_promo_codes(
-    promos: list, type_subtotals: dict, subtotal: float, type_units: dict | None = None
+    promos: list,
+    type_subtotals: dict,
+    subtotal: float,
+    type_units: dict | None = None,
+    exhausted: list[str] | None = None,
 ) -> tuple[float, list[BasketDiscount]]:
     """Apply promo codes to a basket.
 
@@ -131,6 +135,10 @@ def _apply_promo_codes(
     codes. Capping the BASE rather than refusing the code is deliberate: a
     three-ticket basket with a two-ticket code discounts two and bills the
     third, instead of silently dropping the discount the buyer just applied.
+
+    A code that has used up its ``max_uses`` is skipped, and its code is
+    appended to ``exhausted`` so the caller can TELL the buyer: skipping it
+    silently made "this offer is finished" indistinguishable from a typo.
     """
     discounts_applied: list[BasketDiscount] = []
     remaining_by_type: dict = {k: float(v) for k, v in (type_subtotals or {}).items()}
@@ -191,6 +199,8 @@ def _apply_promo_codes(
         if (promo.max_uses is not None
                 and promo.max_uses > 0
                 and promo.used_count >= promo.max_uses):
+            if exhausted is not None and promo.code:
+                exhausted.append(promo.code)
             continue
         scope = _promo_scope(promo)
         base = _base(promo)
@@ -970,8 +980,9 @@ async def calculate_basket_total(
 
     # Ordering (scoped bases first, then basket-wide) is handled inside
     # _apply_promo_codes, which needs per-ticket-type bases to compute it.
+    exhausted_codes: list[str] = []
     total_discount, discounts_applied = _apply_promo_codes(
-        promos, type_subtotals, subtotal, type_units
+        promos, type_subtotals, subtotal, type_units, exhausted=exhausted_codes
     )
     total = max(0, subtotal - total_discount)
 
@@ -984,13 +995,26 @@ async def calculate_basket_total(
         total_discount = round(total_discount, 2)
         total = round(total, 2)
 
+    # A fully-redeemed plain code now says so. Ticket rules already report
+    # `promo_uses_exhausted` from the resolver, so only add what is missing,
+    # and echo the token the buyer typed (codes compare case-insensitively).
+    rejections = list(resolution.rejections)
+    rejected_tokens = {r.code for r in rejections}
+    typed_by_upper = {c.upper(): c for c in promo_codes}
+    for code in exhausted_codes:
+        token = typed_by_upper.get(code.upper(), code)
+        if token in rejected_tokens:
+            continue
+        rejections.append(PromoRejection(code=token, reason="promo_uses_exhausted"))
+        rejected_tokens.add(token)
+
     return BasketTotals(
         subtotal=subtotal,
         discount=total_discount,
         total=total,
         discounts_applied=discounts_applied,
         pending=resolution.pending,
-        rejections=resolution.rejections,
+        rejections=rejections,
     )
 
 
