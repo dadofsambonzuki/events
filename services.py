@@ -28,6 +28,7 @@ from .crud import (
     get_event_tickets,
     get_events,
     get_ticket,
+    get_ticket_ci,
     get_ticket_type,
     get_ticket_types,
     purge_unpaid_tickets,
@@ -111,7 +112,7 @@ def _promo_scope(promo) -> list:
 
 
 def _apply_promo_codes(
-    promos: list, type_subtotals: dict, subtotal: float
+    promos: list, type_subtotals: dict, subtotal: float, type_units: dict | None = None
 ) -> tuple[float, list[BasketDiscount]]:
     """Apply promo codes to a basket.
 
@@ -122,22 +123,61 @@ def _apply_promo_codes(
     first, each against its own base; any basket-wide promos then apply against
     what is left, so a combinable scoped code and a combinable basket code
     stack predictably.
+
+    ``type_units`` maps ticket_type_id -> (unit price, quantity) and makes
+    ``max_tickets`` mean what the admin UI promises: at most that many tickets
+    per redemption are discounted, and any ticket beyond the limit is charged
+    in full. Without it (legacy callers) the limit is not applied to typed
+    codes. Capping the BASE rather than refusing the code is deliberate: a
+    three-ticket basket with a two-ticket code discounts two and bills the
+    third, instead of silently dropping the discount the buyer just applied.
     """
     discounts_applied: list[BasketDiscount] = []
     remaining_by_type: dict = {k: float(v) for k, v in (type_subtotals or {}).items()}
     remaining_total = float(subtotal)
     total_discount = 0.0
 
+    def _unit_cap(scope: list, limit: int) -> float | None:
+        """Value of the ``limit`` dearest tickets in ``scope`` (None = unknown)."""
+        if not type_units or not limit:
+            return None
+        ids = scope or list(type_units.keys())
+        units: list[float] = []
+        for tid in ids:
+            price, qty = type_units.get(tid, (None, 0))
+            qty = int(qty or 0)
+            if qty <= 0:
+                continue
+            if price is None:
+                # Unknown unit price: fall back to the remaining average for
+                # the type rather than dropping the cap.
+                remaining = remaining_by_type.get(tid, 0.0)
+                if remaining <= 0:
+                    continue
+                price = remaining / qty
+            units.extend([float(price)] * qty)
+        if not units:
+            return None
+        units.sort(reverse=True)
+        return float(sum(units[: int(limit)]))
+
     def _base(promo) -> float:
         scope = _promo_scope(promo)
         if not scope:
-            return max(0.0, remaining_total)
-        total = 0.0
-        for tid in scope:
-            # Duplicate ids must not double-count.
-            value = remaining_by_type.get(tid, 0.0)
-            total += value
-        return max(0.0, total)
+            base = max(0.0, remaining_total)
+        else:
+            total = 0.0
+            for tid in scope:
+                # Duplicate ids must not double-count.
+                value = remaining_by_type.get(tid, 0.0)
+                total += value
+            base = max(0.0, total)
+        limit = getattr(promo, "max_tickets", None)
+        if limit:
+            cap = _unit_cap(scope, limit)
+            if cap is not None:
+                base = min(base, cap)
+        return base
 
     # Scoped promos first (each against its own base), then basket-wide ones.
     scoped = [p for p in promos if _promo_scope(p)]
@@ -259,6 +299,26 @@ def _source_scope_matches(promo, source: Ticket, event: Event) -> bool:
     return True
 
 
+_TICKET_TOKEN_MARKERS = ("ticket://", "/events/ticket/", "/ticket/")
+
+
+def _normalise_ticket_token(raw: str) -> str:
+    """Return the bare ticket id from whatever the buyer submitted.
+
+    Buyers are told to "enter your ticket ID", but the pages they copy from
+    hand out a link (`https://…/events/ticket/<id>`) or a `ticket://<id>` QR
+    payload, and an email client can wrap a long id onto two lines. All of
+    those name the same ticket, so reduce them to the id before looking it up.
+    """
+    token = (raw or "").strip().strip("\"'").strip()
+    for marker in _TICKET_TOKEN_MARKERS:
+        if marker in token:
+            token = token.split(marker, 1)[1]
+            break
+    token = token.split("?", 1)[0].split("#", 1)[0]
+    return "".join(token.split()).strip("/<>")
+
+
 async def _resolve_source_ticket(
     event: Event, ticket_id: str, promo: PromoCode
 ) -> tuple[Ticket | None, str | None]:
@@ -267,9 +327,13 @@ async def _resolve_source_ticket(
     Returns ``(ticket, None)`` on success or ``(None, reason)`` — the reason is
     a stable code the checkout can show, instead of failing silently.
     """
-    if not ticket_id:
+    bare = _normalise_ticket_token(ticket_id)
+    if not bare:
         return None, "ticket_not_found"
-    source = await get_ticket(ticket_id)
+    source = await get_ticket(bare)
+    if not source:
+        # Pasted with the wrong case (a client or keyboard "helping").
+        source = await get_ticket_ci(bare)
     if not source:
         return None, "ticket_not_found"
     if not source.paid or source.extra.deactivated or source.extra.refunded:
@@ -668,6 +732,7 @@ async def _resolve_ticket_rules(
     item_count: int,
     *,
     allow_consumed: bool = False,
+    basket_type_ids: set[str] | None = None,
 ) -> _TicketRuleResolution:
     """Pair submitted offer codes and ticket ids against the ticket rules.
 
@@ -751,7 +816,23 @@ async def _resolve_ticket_rules(
         if token is None:
             # No usable ticket. Prompt only when the buyer supplied nothing at
             # all; otherwise the per-token rejection below explains the failure.
-            if not candidates and _rule_code(rule):
+            #
+            # A CODELESS grant has no code to type, so it used to never prompt
+            # -- a buyer who added the add-on was refused by the gate without
+            # the checkout ever saying that a ticket id was what unlocks it.
+            # Prompt when the granted type is in the basket and no source-scope
+            # type is, which is the condition the add-on gate itself uses.
+            wanted = bool(_rule_code(rule))
+            granted = getattr(rule, "grants", None)
+            if granted is not None and basket_type_ids:
+                source_ids = set(
+                    getattr(getattr(rule, "source", None), "ticket_type_ids", None) or []
+                )
+                wanted = (
+                    granted.ticket_type_id in basket_type_ids
+                    and not (source_ids & basket_type_ids)
+                )
+            if not candidates and wanted:
                 pending.append(
                     PromoRequirement(code=rule.code, requires="ticket_id")
                 )
@@ -846,14 +927,20 @@ async def calculate_basket_total(
 
     subtotal = 0
     type_subtotals: dict = {}
+    type_units: dict = {}
     for item in items:
         tt = types_by_id.get(item["ticket_type_id"])
         if not tt:
             continue
-        line_total = float(tt.price) * item.get("quantity", 1)
+        qty = item.get("quantity", 1)
+        line_total = float(tt.price) * qty
         subtotal += line_total
         tid = item["ticket_type_id"]
         type_subtotals[tid] = type_subtotals.get(tid, 0.0) + line_total
+        # Unit price + count per type: what ``max_tickets`` needs to price the
+        # tickets a code is allowed to cover.
+        seen_price, seen_qty = type_units.get(tid, (float(tt.price), 0))
+        type_units[tid] = (seen_price, seen_qty + int(qty or 0))
 
     if event.currency.lower() in ("sat", "sats"):
         subtotal = int(subtotal)
@@ -867,15 +954,24 @@ async def calculate_basket_total(
     ]
 
     item_count = sum(item.get("quantity", 1) for item in items)
+    basket_type_ids = {
+        item.get("ticket_type_id") if isinstance(item, dict)
+        else getattr(item, "ticket_type_id", None)
+        for item in items
+    } - {None}
     resolution = await _resolve_ticket_rules(
-        event, promo_codes, item_count, allow_consumed=allow_consumed
+        event,
+        promo_codes,
+        item_count,
+        allow_consumed=allow_consumed,
+        basket_type_ids=basket_type_ids,
     )
     promos.extend(resolution.promos)
 
     # Ordering (scoped bases first, then basket-wide) is handled inside
     # _apply_promo_codes, which needs per-ticket-type bases to compute it.
     total_discount, discounts_applied = _apply_promo_codes(
-        promos, type_subtotals, subtotal
+        promos, type_subtotals, subtotal, type_units
     )
     total = max(0, subtotal - total_discount)
 

@@ -61,6 +61,20 @@ async def get_ticket(payment_hash: str) -> Ticket | None:
     )
 
 
+async def get_ticket_ci(ticket_id: str) -> Ticket | None:
+    """Case-insensitive ticket lookup — a fallback for pasted ids.
+
+    Ticket ids are random base64url strings, so two ids cannot differ only by
+    case: matching case-insensitively cannot pick the wrong ticket, and it
+    rescues an id whose case a client or keyboard mangled.
+    """
+    return await db.fetchone(
+        "SELECT * FROM events.ticket WHERE LOWER(id) = LOWER(:id)",
+        {"id": ticket_id},
+        Ticket,
+    )
+
+
 async def get_tickets(wallet_ids: str | list[str]) -> list[Ticket]:
     if isinstance(wallet_ids, str):
         wallet_ids = [wallet_ids]

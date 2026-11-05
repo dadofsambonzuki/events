@@ -36,6 +36,17 @@
           this.$q.notify({message: 'Link copied', type: 'positive'})
         })
       },
+    copyTicketId() {
+      // The claim flow asks for the BARE id; the button above copies a share
+      // link. Handing out only the link is what made buyers paste a URL into
+      // the promo box and get "not a recognised offer code or ticket ID".
+      navigator.clipboard.writeText(this.ticketId).then(() => {
+        this.$q.notify({
+          message: this.$t('events.copy_ticket_id_done'),
+          type: 'positive'
+        })
+      })
+    },
     async printWindow() {
       this.printMode = true
       await this.$nextTick()

@@ -61,6 +61,11 @@
           ></lnbits-qrcode>
           <div class="row q-col-gutter-sm justify-center q-mt-md">
             <div class="col-12 col-sm-auto">
+              <q-btn unelevated color="primary" class="full-width" @click="copyTicketId">
+                <span v-text="$t('events.copy_ticket_id')"></span>
+              </q-btn>
+            </div>
+            <div class="col-12 col-sm-auto">
               <q-btn unelevated color="positive" class="full-width" @click="copyTicketUrl">
                 <span v-text="$t('events.copy_url')"></span>
               </q-btn>

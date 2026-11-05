@@ -276,12 +276,16 @@ window.i18n.global.mergeLocaleMessage('de', {
     attendees_for: 'Teilnehmer für',
     name: 'Name',
     basket: 'Warenkorb',
-    promo_code_comma_separated: 'Promo-Code(s) (durch Kommas getrennt)',
+    promo_code_comma_separated: 'Promo-Code oder Ticket-ID (durch Kommas getrennt)',
+    promo_pending_ticket_id_only:
+      'Dieses Ticket braucht ein bestehendes Ticket – gib oben deine Ticket-ID in das Promo-Code-Feld ein.',
     promo_pending_ticket:
       '{code} benötigt zusätzlich deine bestehende Ticket-ID — füge sie im selben Promo-Code-Feld hinzu, durch ein Komma getrennt.',
     promo_none_found: 'Keine gültigen Promo-Codes gefunden',
     promo_reason_generic: 'Dieser Code konnte nicht verwendet werden.',
     promo_reason_ticket_not_found: 'Kein bekannter Angebotscode oder keine bekannte Ticket-ID.',
+    promo_reason_ticket_id_not_found:
+      'Diese Ticket-ID wurde nicht gefunden. Sie enthält keine Leerzeichen – prüfe, ob du sie vollständig kopiert hast, oder nutze „Ticket-ID kopieren“ auf deinem Ticket.',
     promo_reason_ticket_not_eligible: 'Dieses Ticket ist für dieses Angebot nicht berechtigt.',
     promo_reason_ticket_out_of_scope: 'Dieses Ticket stammt nicht aus einem berechtigten Event oder Tickettyp.',
     promo_reason_ticket_already_used: 'Dieses Ticket wurde bereits für ein Angebot verwendet.',
@@ -308,6 +312,8 @@ window.i18n.global.mergeLocaleMessage('de', {
     ticket_count_many: '{count} Tickets',
     show_ticket: 'Ticket anzeigen',
     copy_url: 'Link kopieren',
+    copy_ticket_id: 'Ticket-ID kopieren',
+    copy_ticket_id_done: 'Ticket-ID kopiert',
     continue_payment: 'Zahlung fortsetzen',
     basket_auto_update: 'Warenkorb aktualisiert...',
     total: 'Gesamt',

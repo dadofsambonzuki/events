@@ -363,3 +363,60 @@ def test_zero_total_addon_basket_issues_and_activates():
             "the claim is finalized against the source ticket"
         )
     asyncio.run(run())
+
+
+def test_ticket_id_accepts_a_pasted_link_and_wrong_case():
+    """The ticket page hands out a LINK and a `ticket://` QR payload, and an
+    email client wraps long ids. Buyers paste those forms, so all of them must
+    resolve to the same ticket instead of "not recognised"."""
+    async def run():
+        ev = await make_event()
+        await make_ticket("SRC-PASTE", WEEKEND)
+        forms = [
+            "SRC-PASTE",
+            "  SRC-PASTE\n",
+            '"SRC-PASTE"',
+            "ticket://SRC-PASTE",
+            "https://bitfest.uk/events/ticket/SRC-PASTE",
+            "https://bitfest.uk/events/ticket/SRC-PASTE?utm_source=email",
+            "src-paste",
+        ]
+        for form in forms:
+            res = await S._resolve_ticket_rules(ev, [form], 1)
+            assert len(res.pairs) == 1, f"{form!r} did not resolve"
+            assert not res.rejections, f"{form!r} was rejected"
+
+        # A genuinely wrong id still fails, with the stable reason code.
+        bad = await S._resolve_ticket_rules(ev, ["SRC-NOPE"], 1)
+        assert bad.rejections and bad.rejections[0].reason == "ticket_not_found"
+    asyncio.run(run())
+
+
+def test_addon_alone_prompts_for_the_ticket_id():
+    """A codeless grant has no code to type, so the checkout used to say
+    nothing and the buyer learned about it only from a 400. It must prompt now
+    -- but only when the basket actually needs a ticket."""
+    async def run():
+        ev = await make_event()
+        alone = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 1}], []
+        )
+        assert [p.requires for p in alone.pending] == ["ticket_id"], alone.pending
+        assert alone.pending[0].code == ""
+
+        # the qualifying ticket is already in the basket: nothing to ask for
+        with_source = await S.calculate_basket_total(
+            ev,
+            [{"ticket_type_id": WEEKEND, "quantity": 1},
+             {"ticket_type_id": ADDON, "quantity": 1}],
+            [],
+        )
+        assert with_source.pending == [], with_source.pending
+
+        # a valid id supplied: resolved, so nothing pending either
+        await make_ticket("SRC-P", WEEKEND)
+        supplied = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 1}], ["SRC-P"]
+        )
+        assert supplied.pending == [] and supplied.rejections == []
+    asyncio.run(run())

@@ -35,6 +35,7 @@ window.PageEventsDisplay = {
     if (this.event) {
       await this.loadTicketTypes()
     }
+    this.applyStandaloneChrome()
   },
   computed: {
     formatDescription() {
@@ -95,6 +96,44 @@ window.PageEventsDisplay = {
     }
   },
   methods: {
+    // Standalone event pages: replace the instance chrome ("Bitfest" -> event name),
+    // set the browser title, and cut the link back to the LNbits home. Per-event ids.
+    applyStandaloneChrome() {
+      const CHROME = {
+        '7meNdXUNra5C9AShyAhpCo': {
+          label: 'New Music Economy Concert 2026',
+          title: 'New Music Economy Concert 2026'
+        },
+        Bs3V7Q6YPW7V4x2Dfaoype: {
+          label: '🟠 Bitfest 2026',
+          title: '🟠 Bitfest 2026 · Manchester · 19–22 November'
+        }
+      }
+      let chrome = null
+      for (const id of Object.keys(CHROME)) {
+        if (location.pathname.includes(id)) {
+          chrome = CHROME[id]
+          break
+        }
+      }
+      if (!chrome) return
+      const set = () => {
+        const link = document.querySelector('header .q-toolbar__title a')
+        if (!link) return false
+        const span =
+          link.querySelector('span.q-btn__content span') ||
+          link.querySelector('span')
+        if (span) span.textContent = chrome.label
+        if (link.tagName === 'A') link.removeAttribute('href')
+        link.style.pointerEvents = 'none'
+        if (document.title !== chrome.title) document.title = chrome.title
+        return true
+      }
+      let tries = 0
+      const timer = setInterval(() => {
+        if (set() || ++tries > 40) clearInterval(timer)
+      }, 150)
+    },
     async loadEvent() {
       try {
         const {data} = await LNbits.api.request(
@@ -232,14 +271,20 @@ window.PageEventsDisplay = {
         // buyer is told to add one instead of seeing nothing happen.
         this.promoMessages = (data.pending || []).map(p => ({
           kind: 'pending',
-          label: this.$t('events.promo_pending_ticket', {code: p.code})
+          label: this.$t(
+            // A codeless offer has no code to name in the sentence.
+            p.code
+              ? 'events.promo_pending_ticket'
+              : 'events.promo_pending_ticket_id_only',
+            {code: p.code}
+          )
         }))
         // A token that could not be used says why, instead of silently doing
         // nothing (which is indistinguishable from a mistyped code).
         this.promoMessages = this.promoMessages.concat(
           (data.rejections || []).map(r => ({
             kind: 'rejected',
-            label: `${r.code}: ${this.promoReasonLabel(r.reason)}`
+            label: `${r.code}: ${this.promoReasonLabel(r.reason, r.code)}`
           }))
         )
         if (
@@ -258,7 +303,17 @@ window.PageEventsDisplay = {
         this.applyingPromo = false
       }
     },
-    promoReasonLabel(reason) {
+    promoReasonLabel(reason, token) {
+      // A token that looks like a ticket id gets the actionable message: the
+      // usual cause is an incomplete copy, not a wrong code. Accept the pasted
+      // link forms too, because that is what the ticket page hands out.
+      const bare = String(token || '')
+        .replace(/^ticket:\/\//, '')
+        .replace(/^.*\/ticket\//, '')
+        .trim()
+      if (reason === 'ticket_not_found' && /^[A-Za-z0-9_-]{16,80}$/.test(bare)) {
+        return this.$t('events.promo_reason_ticket_id_not_found')
+      }
       const key = `events.promo_reason_${reason}`
       const label = this.$t(key)
       // $t returns the key itself when it is missing; fall back to a generic

@@ -36,6 +36,16 @@ async def get_ticket(payment_hash):
     return _STORE["tickets"].get(payment_hash)
 
 
+async def get_ticket_ci(ticket_id):
+    """Case-insensitive fallback, mirroring the real `LOWER(id) = LOWER(:id)`."""
+    if not ticket_id:
+        return None
+    for tid, ticket in _STORE["tickets"].items():
+        if tid.lower() == ticket_id.lower():
+            return ticket
+    return None
+
+
 async def get_tickets(wallet_ids):
     ids = wallet_ids if isinstance(wallet_ids, list) else [wallet_ids]
     return [t for t in _STORE["tickets"].values() if t.wallet in ids]

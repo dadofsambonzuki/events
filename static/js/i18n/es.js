@@ -275,12 +275,16 @@ window.i18n.global.mergeLocaleMessage('es', {
     attendees_for: 'Asistentes para',
     name: 'Nombre',
     basket: 'Cesta',
-    promo_code_comma_separated: 'Código(s) promocional(es) (separados por comas)',
+    promo_code_comma_separated: 'Código promocional o ID de entrada (separados por comas)',
+    promo_pending_ticket_id_only:
+      'Esta entrada necesita una entrada existente: introduce tu ID de entrada en el campo de código promocional de arriba.',
     promo_pending_ticket:
       '{code} también necesita tu ID de entrada existente: añádelo en la misma casilla de Promo Code, separado por una coma.',
     promo_none_found: 'No se encontraron códigos promocionales válidos',
     promo_reason_generic: 'Este código no se pudo usar.',
     promo_reason_ticket_not_found: 'No es un código de oferta ni un ID de entrada reconocido.',
+    promo_reason_ticket_id_not_found:
+      'No se encontró ese ID de entrada. No lleva espacios, así que comprueba que lo copiaste entero — o usa el botón «Copiar ID de entrada» de tu entrada.',
     promo_reason_ticket_not_eligible: 'Esa entrada no es válida para esta oferta.',
     promo_reason_ticket_out_of_scope: 'Esa entrada no pertenece a un evento o tipo de entrada válido.',
     promo_reason_ticket_already_used: 'Esa entrada ya se usó para una oferta.',
@@ -307,6 +311,8 @@ window.i18n.global.mergeLocaleMessage('es', {
     ticket_count_many: '{count} entradas',
     show_ticket: 'Mostrar entrada',
     copy_url: 'Copiar enlace',
+    copy_ticket_id: 'Copiar ID de entrada',
+    copy_ticket_id_done: 'ID de entrada copiado',
     continue_payment: 'Continuar con el pago',
     basket_auto_update: 'Cesta actualizándose...',
     total: 'Total',

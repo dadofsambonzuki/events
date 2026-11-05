@@ -279,12 +279,16 @@ window.i18n.global.mergeLocaleMessage('en', {
     attendees_for: 'Attendees for',
     name: 'Name',
     basket: 'Basket',
-    promo_code_comma_separated: 'Promo Code(s) (comma separated)',
+    promo_code_comma_separated: 'Promo code or ticket ID (comma separated)',
+    promo_pending_ticket_id_only:
+      'This ticket needs an existing ticket — enter your ticket ID in the Promo Code box above.',
     promo_pending_ticket:
       '{code} also needs your existing ticket ID — add it in the same Promo Code box, separated by a comma.',
     promo_none_found: 'No valid promo codes found',
     promo_reason_generic: 'This code could not be used.',
     promo_reason_ticket_not_found: 'Not a recognised offer code or ticket ID.',
+    promo_reason_ticket_id_not_found:
+      'That ticket ID wasn’t found. It has no spaces, so check you copied the whole thing — or use the Copy ticket ID button on your ticket.',
     promo_reason_ticket_not_eligible: 'That ticket is not eligible for this offer.',
     promo_reason_ticket_out_of_scope: 'That ticket is not from an eligible event or ticket type.',
     promo_reason_ticket_already_used: 'That ticket has already been used for an offer.',
@@ -311,6 +315,8 @@ window.i18n.global.mergeLocaleMessage('en', {
     ticket_count_many: '{count} Tickets',
     show_ticket: 'Show Ticket',
     copy_url: 'Copy URL',
+    copy_ticket_id: 'Copy ticket ID',
+    copy_ticket_id_done: 'Ticket ID copied',
     continue_payment: 'Continue to Payment',
     basket_auto_update: 'Basket auto-updating...',
     total: 'Total',
