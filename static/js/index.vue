@@ -1060,16 +1060,6 @@
               ></div>
             </template>
 
-            <q-input
-              v-if="!editPromoCodeDialog.data.source.move"
-              filled
-              dense
-              v-model.number="editPromoCodeDialog.data.max_tickets"
-              type="number"
-              min="1"
-              :label="$t('events.promo_max_tickets')"
-              :hint="$t('events.promo_max_tickets_hint')"
-            ></q-input>
           </template>
 
           <q-separator class="q-my-md"></q-separator>
@@ -1077,6 +1067,16 @@
             class="text-caption text-uppercase text-weight-medium"
             v-text="$t('events.promo_sec_limits')"
           ></div>
+          <q-input
+            v-if="!editPromoCodeDialog.data.source.move"
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.max_tickets"
+            type="number"
+            min="1"
+            :label="$t('events.promo_max_tickets')"
+            :hint="$t('events.promo_max_tickets_hint')"
+          ></q-input>
           <q-input
             filled
             dense
@@ -1086,6 +1086,11 @@
             :label="$t('events.promo_max_uses')"
             :hint="$t('events.promo_max_uses_hint')"
           ></q-input>
+          <div
+            v-if="promoCapSummary"
+            class="text-caption text-secondary q-mt-sm"
+            v-text="promoCapSummary"
+          ></div>
           <q-input
             v-if="editPromoCodeDialog.data.source.require_ticket"
             filled

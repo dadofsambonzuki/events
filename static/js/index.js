@@ -1,6 +1,27 @@
 window.PageEvents = {
   template: '#page-events',
   computed: {
+    promoCapSummary() {
+      // max_tickets and max_uses are different axes and their PRODUCT is what
+      // caps a code: say it out loud, because multiplying two numbers by eye is
+      // exactly what admins get wrong.
+      const d = this.editPromoCodeDialog?.data
+      if (!d) return ''
+      const per = d.max_tickets || null
+      const uses = d.max_uses
+      const unlimited = uses === 0 || uses === null || uses === undefined
+      if (unlimited) {
+        return per
+          ? this.$t('events.promo_cap_no_order_limit', {per})
+          : this.$t('events.promo_cap_unlimited')
+      }
+      if (!per) return this.$t('events.promo_cap_no_per_order', {uses})
+      return this.$t('events.promo_cap_total', {
+        total: per * uses,
+        per,
+        uses
+      })
+    },
     eventsColumns() {
       return [
         {
