@@ -339,6 +339,54 @@ def test_grant_rule_discounts_nothing():
     asyncio.run(run())
 
 
+def test_grants_applied_reports_a_paired_ticket_id():
+    """A grant carries no discount, so the validate response came back with
+    nothing in it and the checkout told the buyer "no valid promo codes found"
+    about a ticket ID the server had accepted."""
+    async def run():
+        ev = await make_event()
+        await make_ticket("SRC1", WEEKEND)
+        await make_ticket("SRC2", WEEKEND)
+
+        totals = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 1}], ["SRC1"]
+        )
+        assert totals.discount == 0 and totals.total == 0
+        assert [
+            (g.ticket_type_id, g.quantity, g.ticket_type_name)
+            for g in totals.grants_applied
+        ] == [(ADDON, 1, "Bitflix - The Six Billion Dollar Man")]
+        assert totals.rejections == []
+
+        # One source ticket per rule per basket, as the resolver has always
+        # behaved: a second id pairs against nothing and says so. A holder of
+        # two tickets claims twice (or the second claim is a separate basket).
+        both = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 2}], ["SRC1", "SRC2"]
+        )
+        assert [(g.ticket_type_id, g.quantity) for g in both.grants_applied] == [
+            (ADDON, 1)
+        ]
+        assert [(r.code, r.reason) for r in both.rejections] == [
+            ("SRC2", "ticket_not_applicable")
+        ]
+
+        # nothing supplied: no grant, the pending prompt says what to enter
+        alone = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 1}], []
+        )
+        assert alone.grants_applied == [] and alone.pending
+
+        # a ticket from another event stays out of scope, it is not a grant
+        await make_ticket("FF1", "ADULT", event="EV2")
+        other = await S.calculate_basket_total(
+            ev, [{"ticket_type_id": ADDON, "quantity": 1}], ["FF1"]
+        )
+        assert other.grants_applied == []
+        assert [r.reason for r in other.rejections] == ["ticket_out_of_scope"]
+    asyncio.run(run())
+
+
 # --- end to end: the zero-total claim ---------------------------------------
 
 def test_zero_total_addon_basket_issues_and_activates():

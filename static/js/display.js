@@ -11,6 +11,7 @@ window.PageEventsDisplay = {
       basketEmail: '',
       promoCodeInput: '',
       discountBreakdown: [],
+      grantsApplied: [],
       promoMessages: [],
       basketTotal: 0,
       applyingPromo: false,
@@ -223,6 +224,7 @@ window.PageEventsDisplay = {
       )
       if (this.basketItems.length === 0) {
         this.discountBreakdown = []
+        this.grantsApplied = []
         this.promoMessages = []
         this.basketTotal = 0
         return
@@ -236,6 +238,7 @@ window.PageEventsDisplay = {
       }
       this.basketTotal = subtotal
       this.discountBreakdown = []
+      this.grantsApplied = []
       this.promoMessages = []
     },
     async applyPromoCode() {
@@ -267,6 +270,14 @@ window.PageEventsDisplay = {
         this.discountBreakdown = (data.discounts_applied || []).map(d => ({
           label: `${d.code}: ${d.amount_saved} ${this.basketCurrency}`
         }))
+        // A grant rule authorises extra tickets and carries NO discount, so it
+        // must be reported separately or a good ticket ID looks like a bad one.
+        this.grantsApplied = (data.grants_applied || []).map(g => ({
+          label: this.$t('events.promo_grant_confirmed', {
+            quantity: g.quantity || 1,
+            name: g.ticket_type_name || g.ticket_type_id
+          })
+        }))
         // An offer that needs a ticket ID reports what it still wants, so the
         // buyer is told to add one instead of seeing nothing happen.
         this.promoMessages = (data.pending || []).map(p => ({
@@ -289,6 +300,7 @@ window.PageEventsDisplay = {
         )
         if (
           !this.discountBreakdown.length &&
+          !this.grantsApplied.length &&
           !this.promoMessages.length &&
           codes.length
         ) {

@@ -551,6 +551,9 @@ window.i18n.global.mergeLocaleMessage('de', {
     promo_pending_ticket:
       '{code} benötigt zusätzlich deine bestehende Ticket-ID — füge sie im selben Promo-Code-Feld hinzu, durch ein Komma getrennt.',
 
+    promo_grant_confirmed:
+      'Ticket-ID akzeptiert — {quantity} × {name} freigeschaltet. Jetzt zur Kasse gehen.',
+
     promo_none_found: 'Keine gültigen Promo-Codes gefunden',
 
     promo_reason_generic: 'Dieser Code konnte nicht verwendet werden.',

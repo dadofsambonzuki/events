@@ -550,6 +550,9 @@ window.i18n.global.mergeLocaleMessage('es', {
     promo_pending_ticket:
       '{code} también necesita tu ID de entrada existente: añádelo en la misma casilla de Promo Code, separado por una coma.',
 
+    promo_grant_confirmed:
+      'ID de entrada aceptado: {quantity} × {name} desbloqueado. Pulsa Pagar para reclamarlo.',
+
     promo_none_found: 'No se encontraron códigos promocionales válidos',
 
     promo_reason_generic: 'Este código no se pudo usar.',

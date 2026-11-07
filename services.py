@@ -40,6 +40,7 @@ from .crud import (
 from .models import (
     Basket,
     BasketDiscount,
+    BasketGrant,
     BasketTotals,
     CreateBasket,
     Event,
@@ -978,6 +979,29 @@ async def calculate_basket_total(
     )
     promos.extend(resolution.promos)
 
+    # Report what the submitted ticket IDs AUTHORISED. A grant rule carries no
+    # discount, so without this a perfectly good ticket ID yields an otherwise
+    # empty response — which the checkout renders as "no valid promo codes
+    # found" even though it will honour the claim at checkout.
+    grants_applied: dict[tuple[str, str], BasketGrant] = {}
+    for rule, _token, _source in resolution.pairs:
+        grant = getattr(rule, "grants", None)
+        if grant is None:
+            continue
+        key = (rule.code or "", grant.ticket_type_id)
+        entry = grants_applied.get(key)
+        if entry is None:
+            granted_type = types_by_id.get(grant.ticket_type_id)
+            entry = BasketGrant(
+                code=rule.code or "",
+                title=rule.title or "",
+                ticket_type_id=grant.ticket_type_id,
+                ticket_type_name=granted_type.name if granted_type else None,
+                quantity=0,
+            )
+            grants_applied[key] = entry
+        entry.quantity += grant.per_source or 1
+
     # Ordering (scoped bases first, then basket-wide) is handled inside
     # _apply_promo_codes, which needs per-ticket-type bases to compute it.
     exhausted_codes: list[str] = []
@@ -1013,6 +1037,7 @@ async def calculate_basket_total(
         discount=total_discount,
         total=total,
         discounts_applied=discounts_applied,
+        grants_applied=list(grants_applied.values()),
         pending=resolution.pending,
         rejections=rejections,
     )

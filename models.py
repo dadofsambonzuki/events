@@ -410,6 +410,23 @@ class BasketDiscount(BaseModel):
     amount_saved: float = 0
 
 
+class BasketGrant(BaseModel):
+    """Tickets an offer AUTHORISES rather than discounts.
+
+    A grant rule (a free screening seat, say) carries no discount at all, so a
+    validate response that only reports discounts looks exactly like a refused
+    code — the page then told the buyer "no valid promo codes found" while the
+    server had in fact accepted their ticket. Reporting the grant is what lets
+    the checkout confirm that the ticket ID worked.
+    """
+
+    code: str = ""
+    title: str = ""
+    ticket_type_id: str
+    ticket_type_name: str | None = None
+    quantity: int = 1
+
+
 class PromoRequirement(BaseModel):
     """A recognised offer code that still needs more input before it applies.
 
@@ -441,6 +458,7 @@ class BasketTotals(BaseModel):
     discount: float = 0
     total: float = 0
     discounts_applied: list[BasketDiscount] = Field(default_factory=list)
+    grants_applied: list[BasketGrant] = Field(default_factory=list)
     pending: list[PromoRequirement] = Field(default_factory=list)
     rejections: list[PromoRejection] = Field(default_factory=list)
 

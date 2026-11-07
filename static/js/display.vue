@@ -178,6 +178,15 @@
               {{ d.label }}
             </div>
           </div>
+          <div v-if="grantsApplied.length > 0" class="q-mt-md">
+            <div
+              v-for="(g, idx) in grantsApplied"
+              :key="idx"
+              class="text-caption text-positive"
+            >
+              {{ g.label }}
+            </div>
+          </div>
           <div v-if="promoMessages.length > 0" class="q-mt-md">
             <div
               v-for="(m, idx) in promoMessages"

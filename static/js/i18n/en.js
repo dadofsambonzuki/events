@@ -561,6 +561,9 @@ window.i18n.global.mergeLocaleMessage('en', {
     promo_pending_ticket:
       '{code} also needs your existing ticket ID — add it in the same Promo Code box, separated by a comma.',
 
+    promo_grant_confirmed:
+      'Ticket ID accepted — {quantity} × {name} unlocked. Press Checkout to claim.',
+
     promo_none_found: 'No valid promo codes found',
 
     promo_reason_generic: 'This code could not be used.',
