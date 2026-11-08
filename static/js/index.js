@@ -30,10 +30,9 @@ window.PageEvents = {
       if (total) {
         text +=
           ' ' +
-          this.$t('events.promo_cap_global', {
-            total,
-            used: d.tickets_used || 0
-          })
+          // The maximum only: a usage counter here contradicted the Usage
+          // section (tickets_used starts when the field ships, used_count does not).
+          this.$t('events.promo_cap_global', {total})
       }
       return text
     },

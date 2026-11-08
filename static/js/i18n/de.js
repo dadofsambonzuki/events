@@ -414,7 +414,7 @@ window.i18n.global.mergeLocaleMessage('de', {
     promo_cap_unlimited:
       'Keine Limits: beliebig viele pro Bestellung, unbegrenzte Bestellungen.',
     promo_cap_global:
-      'Harte Grenze: insgesamt {total} Tickets ({used} genutzt).',
+      'Harte Grenze: insgesamt {total} Tickets.',
     promo_uses_label: 'Verwendet: {used} / {max}',
 
     promo_uses_unlimited: 'Verwendet: {used} mal (unbegrenzt)',

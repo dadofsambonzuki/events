@@ -413,7 +413,7 @@ window.i18n.global.mergeLocaleMessage('es', {
     promo_cap_unlimited:
       'Sin límites: cualquier número por pedido, pedidos ilimitados.',
     promo_cap_global:
-      'Tope estricto: {total} entradas en total ({used} usadas).',
+      'Tope estricto: {total} entradas en total.',
     promo_uses_label: 'Usos: {used} / {max}',
 
     promo_uses_unlimited: 'Usado: {used} veces (ilimitado)',

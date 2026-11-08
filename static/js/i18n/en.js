@@ -374,7 +374,7 @@ window.i18n.global.mergeLocaleMessage('en', {
     promo_cap_unlimited:
       'No limits: any number per order, unlimited orders.',
     promo_cap_global:
-      'Hard cap: {total} tickets in total ({used} used).',
+      'Hard cap: {total} tickets in total.',
     promo_uses_label: 'Uses: {used} / {max}',
 
     promo_uses_unlimited: 'Used: {used} times (unlimited)',
