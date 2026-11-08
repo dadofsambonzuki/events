@@ -392,9 +392,9 @@ window.i18n.global.mergeLocaleMessage('es', {
 
     promo_ticket_type_scope_all: 'Todos los tipos de entrada',
 
-    promo_max_total_tickets: 'Entradas totales (todos los pedidos)',
+    promo_max_total_tickets: 'Entradas máximas',
     promo_max_total_tickets_hint:
-      'Como máximo estas entradas entre todos los pedidos, sean los que sean. Vacío = sin límite total.',
+      'Tope estricto en todos los pedidos: como máximo estas entradas en total, sean los pedidos que sean. Vacío = sin tope.',
     promo_max_uses: 'Pedidos (usos)',
 
     promo_max_uses_hint:

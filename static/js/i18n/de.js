@@ -393,9 +393,9 @@ window.i18n.global.mergeLocaleMessage('de', {
 
     promo_ticket_type_scope_all: 'Alle Tickettypen',
 
-    promo_max_total_tickets: 'Tickets insgesamt (alle Bestellungen)',
+    promo_max_total_tickets: 'Maximale Tickets',
     promo_max_total_tickets_hint:
-      'Höchstens so viele Tickets über alle Bestellungen hinweg, egal wie viele Bestellungen. Leer = kein Gesamtlimit.',
+      'Harte Obergrenze über alle Bestellungen: höchstens so viele Tickets insgesamt, egal wie viele Bestellungen. Leer = keine Obergrenze.',
     promo_max_uses: 'Bestellungen (Nutzungen)',
 
     promo_max_uses_hint:

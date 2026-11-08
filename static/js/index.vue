@@ -1078,16 +1078,6 @@
             :hint="$t('events.promo_max_tickets_hint')"
           ></q-input>
           <q-input
-            v-if="editPromoCodeDialog.data.code"
-            filled
-            dense
-            v-model.number="editPromoCodeDialog.data.max_total_tickets"
-            type="number"
-            min="1"
-            :label="$t('events.promo_max_total_tickets')"
-            :hint="$t('events.promo_max_total_tickets_hint')"
-          ></q-input>
-          <q-input
             filled
             dense
             v-model.number="editPromoCodeDialog.data.max_uses"
@@ -1096,11 +1086,6 @@
             :label="$t('events.promo_max_uses')"
             :hint="$t('events.promo_max_uses_hint')"
           ></q-input>
-          <div
-            v-if="promoCapSummary"
-            class="text-caption text-secondary q-mt-sm"
-            v-text="promoCapSummary"
-          ></div>
           <q-input
             v-if="editPromoCodeDialog.data.source.require_ticket"
             filled
@@ -1111,6 +1096,21 @@
             :label="$t('events.promo_redemptions_per_ticket')"
             :hint="$t('events.promo_redemptions_per_ticket_hint')"
           ></q-input>
+          <q-input
+            v-if="editPromoCodeDialog.data.code"
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.max_total_tickets"
+            type="number"
+            min="1"
+            :label="$t('events.promo_max_total_tickets')"
+            :hint="$t('events.promo_max_total_tickets_hint')"
+          ></q-input>
+          <div
+            v-if="promoCapSummary"
+            class="text-caption text-secondary q-mt-sm"
+            v-text="promoCapSummary"
+          ></div>
           <q-toggle
             v-model="editPromoCodeDialog.data.combinable"
             :label="$t('events.promo_combinable')"

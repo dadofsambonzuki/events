@@ -353,9 +353,9 @@ window.i18n.global.mergeLocaleMessage('en', {
 
     remaining_threshold_hint: 'Only show when remaining is at or below this number (0 = always show)',
 
-    promo_max_total_tickets: 'Total tickets (all orders)',
+    promo_max_total_tickets: 'Maximum tickets',
     promo_max_total_tickets_hint:
-      'At most this many tickets across every order, however many orders that takes. Empty = no total limit.',
+      'Hard ceiling across all orders: at most this many tickets in total, however many orders that takes. Empty = no ceiling.',
     promo_max_uses: 'Orders (redemptions)',
 
     promo_max_uses_hint:
