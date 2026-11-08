@@ -117,7 +117,7 @@ def _apply_promo_codes(
     type_subtotals: dict,
     subtotal: float,
     type_units: dict | None = None,
-    exhausted: list[str] | None = None,
+    exhausted: list[tuple[str, str]] | None = None,
 ) -> tuple[float, list[BasketDiscount]]:
     """Apply promo codes to a basket.
 
@@ -137,9 +137,10 @@ def _apply_promo_codes(
     three-ticket basket with a two-ticket code discounts two and bills the
     third, instead of silently dropping the discount the buyer just applied.
 
-    A code that has used up its ``max_uses`` is skipped, and its code is
-    appended to ``exhausted`` so the caller can TELL the buyer: skipping it
-    silently made "this offer is finished" indistinguishable from a typo.
+    A code that has used up its ``max_uses`` (or its global
+    ``max_total_tickets``) is skipped, and ``(code, reason)`` is appended to
+    ``exhausted`` so the caller can TELL the buyer: skipping it silently made
+    "this offer is finished" indistinguishable from a typo.
     """
     discounts_applied: list[BasketDiscount] = []
     remaining_by_type: dict = {k: float(v) for k, v in (type_subtotals or {}).items()}
@@ -182,6 +183,11 @@ def _apply_promo_codes(
                 total += value
             base = max(0.0, total)
         limit = getattr(promo, "max_tickets", None)
+        total_cap = getattr(promo, "max_total_tickets", None)
+        if total_cap:
+            # The global ticket budget also caps what one order may cover.
+            left = max(0, total_cap - (getattr(promo, "tickets_used", 0) or 0))
+            limit = left if not limit else min(limit, left)
         if limit:
             cap = _unit_cap(scope, limit)
             if cap is not None:
@@ -201,8 +207,15 @@ def _apply_promo_codes(
                 and promo.max_uses > 0
                 and promo.used_count >= promo.max_uses):
             if exhausted is not None and promo.code:
-                exhausted.append(promo.code)
+                exhausted.append((promo.code, "promo_uses_exhausted"))
             continue
+        total_cap = getattr(promo, "max_total_tickets", None)
+        if total_cap:
+            left = total_cap - (getattr(promo, "tickets_used", 0) or 0)
+            if left <= 0:
+                if exhausted is not None and promo.code:
+                    exhausted.append((promo.code, "promo_tickets_exhausted"))
+                continue
         scope = _promo_scope(promo)
         base = _base(promo)
         if base <= 0:
@@ -1004,7 +1017,7 @@ async def calculate_basket_total(
 
     # Ordering (scoped bases first, then basket-wide) is handled inside
     # _apply_promo_codes, which needs per-ticket-type bases to compute it.
-    exhausted_codes: list[str] = []
+    exhausted_codes: list[tuple[str, str]] = []
     total_discount, discounts_applied = _apply_promo_codes(
         promos, type_subtotals, subtotal, type_units, exhausted=exhausted_codes
     )
@@ -1025,11 +1038,11 @@ async def calculate_basket_total(
     rejections = list(resolution.rejections)
     rejected_tokens = {r.code for r in rejections}
     typed_by_upper = {c.upper(): c for c in promo_codes}
-    for code in exhausted_codes:
+    for code, reason in exhausted_codes:
         token = typed_by_upper.get(code.upper(), code)
         if token in rejected_tokens:
             continue
-        rejections.append(PromoRejection(code=token, reason="promo_uses_exhausted"))
+        rejections.append(PromoRejection(code=token, reason=reason))
         rejected_tokens.add(token)
 
     return BasketTotals(
@@ -1721,17 +1734,55 @@ async def _send_admin_sale_notification(
         logger.warning(f"Failed to send admin notification: {exc}")
 
 
+def _promo_covered_tickets(promo, basket_tickets) -> int:
+    """Tickets one paid redemption actually consumed, for the global cap.
+
+    A discount code covers the tickets in ITS scope (all of them when
+    unscoped); a grant rule covers the tickets it ADDED. ``max_tickets`` still
+    caps the per-order share, so a 3-ticket basket with a 2-ticket code consumes
+    2 -- exactly the tickets whose discount was capped.
+    """
+    granted = getattr(promo, "grants", None)
+    if granted is not None:
+        count = sum(
+            1 for t in basket_tickets if t.ticket_type_id == granted.ticket_type_id
+        )
+    else:
+        scope = set(promo.ticket_type_ids or [])
+        count = sum(
+            1 for t in basket_tickets if not scope or t.ticket_type_id in scope
+        )
+    per_order = getattr(promo, "max_tickets", None)
+    if per_order:
+        count = min(count, per_order)
+    return count
+
+
 async def _increment_promo_uses_from_basket(
     event: Event, basket: Basket
 ) -> None:
+    """Count a paid redemption: one use, plus the tickets it covered.
+
+    ``tickets_used`` is maintained from the basket's own ticket rows rather than
+    from ``max_tickets``, so a code that was only needed for one seat of a
+    three-ticket order consumes one -- the global cap must track reality, not the
+    per-order ceiling.
+    """
     if not basket.promo_codes:
         return
     applied_codes = {c.upper() for c in basket.promo_codes}
+    basket_tickets = None
     modified = False
     for promo in event.extra.promo_codes:
-        if promo.code in applied_codes:
-            promo.used_count += 1
-            modified = True
+        if not promo.code or promo.code.upper() not in applied_codes:
+            continue
+        promo.used_count += 1
+        if basket_tickets is None:
+            basket_tickets = await get_basket_tickets(basket.id)
+        promo.tickets_used = (promo.tickets_used or 0) + _promo_covered_tickets(
+            promo, basket_tickets
+        )
+        modified = True
     if modified:
         await update_event(event)
 

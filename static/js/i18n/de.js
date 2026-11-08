@@ -393,6 +393,9 @@ window.i18n.global.mergeLocaleMessage('de', {
 
     promo_ticket_type_scope_all: 'Alle Tickettypen',
 
+    promo_max_total_tickets: 'Tickets insgesamt (alle Bestellungen)',
+    promo_max_total_tickets_hint:
+      'Höchstens so viele Tickets über alle Bestellungen hinweg, egal wie viele Bestellungen. Leer = kein Gesamtlimit.',
     promo_max_uses: 'Bestellungen (Nutzungen)',
 
     promo_max_uses_hint:
@@ -410,6 +413,8 @@ window.i18n.global.mergeLocaleMessage('de', {
 
     promo_cap_unlimited:
       'Keine Limits: beliebig viele pro Bestellung, unbegrenzte Bestellungen.',
+    promo_cap_global:
+      'Harte Grenze: insgesamt {total} Tickets ({used} genutzt).',
     promo_uses_label: 'Verwendet: {used} / {max}',
 
     promo_uses_unlimited: 'Verwendet: {used} mal (unbegrenzt)',
@@ -572,6 +577,8 @@ window.i18n.global.mergeLocaleMessage('de', {
     promo_reason_ticket_redemptions_exhausted: 'Dieses Ticket hat alle Einlösungen für dieses Angebot genutzt.',
 
     promo_reason_promo_uses_exhausted: 'Dieses Angebot hat sein Nutzungslimit erreicht.',
+    promo_reason_promo_tickets_exhausted:
+      'Dieses Angebot hat keine Tickets mehr.',
 
     promo_reason_ticket_needs_offer_code:
       'Gib den Angebotscode und deine Ticket-ID ein, beide im Promo-Code-Feld.',

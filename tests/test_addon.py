@@ -502,3 +502,82 @@ def test_spent_plain_code_says_so():
         )
         assert fresh.discount == 74.5 and fresh.rejections == [], "a live code stays quiet"
     asyncio.run(run())
+
+
+def test_global_ticket_cap_spans_orders():
+    """max_total_tickets caps TICKETS across every order, independently of the
+    per-order cap and the redemption count."""
+    async def run():
+        ev = await make_event()
+        ev.extra.promo_codes.append(
+            M.PromoCode(
+                code="BULK", discount_percent=100, max_tickets=2,
+                max_total_tickets=3, active=True,
+            )
+        )
+        await crud.update_event(ev)
+        three = [{"ticket_type_id": WEEKEND, "quantity": 3}]
+        promo = [p for p in ev.extra.promo_codes if p.code == "BULK"][0]
+
+        first = await S.calculate_basket_total(ev, three, ["BULK"])
+        assert first.discount == 2 * 149, "per-order cap covers 2 of the 3"
+
+        promo.tickets_used = 2          # two of the three global tickets gone
+        await crud.update_event(ev)
+        second = await S.calculate_basket_total(ev, three, ["BULK"])
+        assert second.discount == 149, "only the one remaining ticket is covered"
+
+        promo.tickets_used = 3
+        await crud.update_event(ev)
+        spent = await S.calculate_basket_total(ev, three, ["BULK"])
+        assert spent.discount == 0
+        assert [(r.code, r.reason) for r in spent.rejections] == [
+            ("BULK", "promo_tickets_exhausted")
+        ], "the buyer is told the tickets ran out, not left guessing"
+    asyncio.run(run())
+
+
+def test_paid_basket_counts_only_the_tickets_it_covered():
+    """tickets_used must track what was covered, not max_tickets: a 3-ticket
+    basket with a 2-ticket code consumes 2."""
+    async def run():
+        ev = await make_event()
+        promo = M.PromoCode(
+            code="BULK", discount_percent=100, max_tickets=2, max_total_tickets=10
+        )
+        ev.extra.promo_codes.append(promo)
+        await crud.update_event(ev)
+        basket = SimpleNamespace(id="B9", promo_codes=["BULK"])
+        for n in range(3):
+            ticket = await make_ticket(f"T{n}", WEEKEND)
+            ticket.basket_id = "B9"
+            await crud.update_ticket(ticket)
+
+        await S._increment_promo_uses_from_basket(ev, basket)
+        assert promo.used_count == 1
+        assert promo.tickets_used == 2, "the per-order cap covered 2 of the 3 tickets"
+    asyncio.run(run())
+
+
+def test_global_cap_counts_only_the_codes_scope():
+    """An unscoped code counts every ticket; a scoped one only its own types."""
+    async def run():
+        ev = await make_event()
+        scoped = M.PromoCode(
+            code="FAM", discount_percent=50, ticket_type_ids=[FAMILY],
+            max_total_tickets=10,
+        )
+        ev.extra.promo_codes.append(scoped)
+        await crud.update_event(ev)
+        basket = SimpleNamespace(id="B8", promo_codes=["FAM"])
+        for tid in ("A", "B"):
+            t = await make_ticket(tid, WEEKEND)
+            t.basket_id = "B8"
+            await crud.update_ticket(t)
+        fam = await make_ticket("C", FAMILY)
+        fam.basket_id = "B8"
+        await crud.update_ticket(fam)
+
+        await S._increment_promo_uses_from_basket(ev, basket)
+        assert scoped.tickets_used == 1, "only the Family ticket is in scope"
+    asyncio.run(run())

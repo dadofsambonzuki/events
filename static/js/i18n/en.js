@@ -353,6 +353,9 @@ window.i18n.global.mergeLocaleMessage('en', {
 
     remaining_threshold_hint: 'Only show when remaining is at or below this number (0 = always show)',
 
+    promo_max_total_tickets: 'Total tickets (all orders)',
+    promo_max_total_tickets_hint:
+      'At most this many tickets across every order, however many orders that takes. Empty = no total limit.',
     promo_max_uses: 'Orders (redemptions)',
 
     promo_max_uses_hint:
@@ -370,6 +373,8 @@ window.i18n.global.mergeLocaleMessage('en', {
 
     promo_cap_unlimited:
       'No limits: any number per order, unlimited orders.',
+    promo_cap_global:
+      'Hard cap: {total} tickets in total ({used} used).',
     promo_uses_label: 'Uses: {used} / {max}',
 
     promo_uses_unlimited: 'Used: {used} times (unlimited)',
@@ -582,6 +587,8 @@ window.i18n.global.mergeLocaleMessage('en', {
     promo_reason_ticket_redemptions_exhausted: 'That ticket has already used all of its redemptions for this offer.',
 
     promo_reason_promo_uses_exhausted: 'This offer has reached its usage limit.',
+    promo_reason_promo_tickets_exhausted:
+      'This offer has no tickets left.',
 
     promo_reason_ticket_needs_offer_code:
       'Enter the offer code as well as your ticket ID, both in the Promo Code box.',

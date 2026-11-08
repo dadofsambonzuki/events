@@ -1078,6 +1078,16 @@
             :hint="$t('events.promo_max_tickets_hint')"
           ></q-input>
           <q-input
+            v-if="editPromoCodeDialog.data.code"
+            filled
+            dense
+            v-model.number="editPromoCodeDialog.data.max_total_tickets"
+            type="number"
+            min="1"
+            :label="$t('events.promo_max_total_tickets')"
+            :hint="$t('events.promo_max_total_tickets_hint')"
+          ></q-input>
+          <q-input
             filled
             dense
             v-model.number="editPromoCodeDialog.data.max_uses"

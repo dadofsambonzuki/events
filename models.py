@@ -84,6 +84,15 @@ class PromoCode(BaseModel):
     combinable: bool = True
     max_uses: int | None = None
     used_count: int = 0
+    # GLOBAL ticket cap across every order, independent of the other two axes:
+    # `max_tickets` limits one basket, `max_uses` limits redemptions, and this
+    # limits the number of TICKETS the code covers however many orders that
+    # takes. `tickets_used` is maintained when a basket is paid, counted from
+    # the tickets the code actually covered (not from `max_tickets`).
+    max_total_tickets: int | None = None
+    # Nullable so a hand-edited or re-saved row carrying null cannot make the
+    # whole event unparseable; every reader treats it as 0.
+    tickets_used: int | None = 0
     source: PromoSource = Field(default_factory=PromoSource)
     redemptions_per_ticket: int = 1
     # TARGET scope: when set, the discount only applies to the value of the

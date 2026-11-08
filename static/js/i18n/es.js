@@ -392,6 +392,9 @@ window.i18n.global.mergeLocaleMessage('es', {
 
     promo_ticket_type_scope_all: 'Todos los tipos de entrada',
 
+    promo_max_total_tickets: 'Entradas totales (todos los pedidos)',
+    promo_max_total_tickets_hint:
+      'Como máximo estas entradas entre todos los pedidos, sean los que sean. Vacío = sin límite total.',
     promo_max_uses: 'Pedidos (usos)',
 
     promo_max_uses_hint:
@@ -409,6 +412,8 @@ window.i18n.global.mergeLocaleMessage('es', {
 
     promo_cap_unlimited:
       'Sin límites: cualquier número por pedido, pedidos ilimitados.',
+    promo_cap_global:
+      'Tope estricto: {total} entradas en total ({used} usadas).',
     promo_uses_label: 'Usos: {used} / {max}',
 
     promo_uses_unlimited: 'Usado: {used} veces (ilimitado)',
@@ -571,6 +576,8 @@ window.i18n.global.mergeLocaleMessage('es', {
     promo_reason_ticket_redemptions_exhausted: 'Esa entrada ya ha agotado todos sus canjes para esta oferta.',
 
     promo_reason_promo_uses_exhausted: 'Esta oferta ha alcanzado su límite de uso.',
+    promo_reason_promo_tickets_exhausted:
+      'Esta oferta ya no tiene entradas disponibles.',
 
     promo_reason_ticket_needs_offer_code:
       'Introduce el código de oferta además de tu ID de entrada, ambos en la casilla de Promo Code.',

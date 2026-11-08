@@ -9,18 +9,33 @@ window.PageEvents = {
       if (!d) return ''
       const per = d.max_tickets || null
       const uses = d.max_uses
+      const total = d.max_total_tickets || null
       const unlimited = uses === 0 || uses === null || uses === undefined
+      let text
       if (unlimited) {
-        return per
+        text = per
           ? this.$t('events.promo_cap_no_order_limit', {per})
           : this.$t('events.promo_cap_unlimited')
+      } else if (!per) {
+        text = this.$t('events.promo_cap_no_per_order', {uses})
+      } else {
+        text = this.$t('events.promo_cap_total', {
+          total: per * uses,
+          per,
+          uses
+        })
       }
-      if (!per) return this.$t('events.promo_cap_no_per_order', {uses})
-      return this.$t('events.promo_cap_total', {
-        total: per * uses,
-        per,
-        uses
-      })
+      // The product above is only an upper bound; a global ticket cap is the
+      // hard limit, so it is stated separately rather than multiplied in.
+      if (total) {
+        text +=
+          ' ' +
+          this.$t('events.promo_cap_global', {
+            total,
+            used: d.tickets_used || 0
+          })
+      }
+      return text
     },
     eventsColumns() {
       return [
@@ -189,6 +204,8 @@ active: true,
           combinable: true,
           max_uses: null,
           used_count: 0,
+          max_total_tickets: null,
+          tickets_used: 0,
           redemptions_per_ticket: 1,
           ticket_type_ids: [],
           max_tickets: null
