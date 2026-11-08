@@ -313,7 +313,12 @@ active: true,
             ? code.ticket_type_ids.filter(Boolean)
             : []
           code.ticket_type_ids = scope.length ? scope : null
+          // An empty number input arrives as "", which the API rejects as "not a
+          // valid integer" -- normalise EVERY optional numeric before sending.
           if (!code.max_tickets) code.max_tickets = null
+          if (!code.max_uses) code.max_uses = null
+          if (!code.max_total_tickets) code.max_total_tickets = null
+          if (!code.redemptions_per_ticket) code.redemptions_per_ticket = 1
           return {
             ...code,
             code: (code.code || '').trim().toUpperCase()
@@ -1093,7 +1098,11 @@ active: true,
         ? code.ticket_type_ids.filter(Boolean)
         : []
       code.ticket_type_ids = scope.length ? scope : null
+      // "" from an empty number input fails the API's int validation.
       if (!code.max_tickets) code.max_tickets = null
+      if (!code.max_uses) code.max_uses = null
+      if (!code.max_total_tickets) code.max_total_tickets = null
+      if (!code.redemptions_per_ticket) code.redemptions_per_ticket = 1
       code.code = (code.code || '').trim().toUpperCase()
 
       // Without a ticket requirement the code is the only way in, so it cannot
