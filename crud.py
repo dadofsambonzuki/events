@@ -288,3 +288,20 @@ async def get_tickets_by_satspay_charge_id(charge_id: str) -> list[Ticket]:
         {"charge_id": charge_id},
         Ticket,
     )
+
+
+async def get_unpaid_baskets_with_charges(since: float) -> list[Basket]:
+    """Unpaid baskets that carry a SatsPay charge worth re-checking.
+
+    The satspay webhook is the fast path to activation, but it is best-effort:
+    it can be refused, lost while the process restarts, or never sent at all.
+    This is the query behind the reconcile sweep, so a settled charge still
+    turns into issued tickets without the buyer having to come back.
+    """
+    return await db.fetchall(
+        "SELECT * FROM events.baskets WHERE paid = false"
+        " AND satspay_charge_id IS NOT NULL AND time > :since"
+        " ORDER BY time DESC",
+        {"since": since},
+        model=Basket,
+    )

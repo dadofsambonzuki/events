@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import smtplib
+import time
 from asyncio.tasks import create_task
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
@@ -19,6 +20,7 @@ from loguru import logger
 
 from .crud import (
     count_tickets_by_type,
+    get_unpaid_baskets_with_charges,
     get_all_ticket_types,
     create_basket,
     create_ticket,
@@ -1315,6 +1317,69 @@ async def handle_basket_payment(
     await _activate_basket_tickets(basket, tickets, event)
 
     return charge
+
+
+# Backoff state for the reconcile sweep, keyed by basket id. A basket whose
+# charge is still unpaid is re-checked ever more rarely, so an abandoned
+# checkout cannot turn into a polling loop against satspay.
+_RECONCILE_NEXT: dict[str, float] = {}
+_RECONCILE_BACKOFF: dict[str, float] = {}
+RECONCILE_MIN_INTERVAL = 15.0
+RECONCILE_MAX_INTERVAL = 300.0
+
+
+async def reconcile_unpaid_baskets(window_seconds: int = 48 * 3600) -> int:
+    """Issue tickets for baskets whose charge settled without a webhook.
+
+    The satspay webhook is the fast path; this sweep is the guarantee. A
+    delivery can fail (core's SafeHttpClient refuses a callback aimed at the
+    instance's own loopback address), be lost across a restart, or never be
+    sent — and the buyer is under no obligation to reopen the basket page, so
+    nothing else would notice. Returns the number of baskets activated.
+    """
+    from lnbits.core.crud.wallets import get_wallet as get_wallet_crud
+
+    baskets = await get_unpaid_baskets_with_charges(time.time() - window_seconds)
+    live_ids = {basket.id for basket in baskets}
+    for basket_id in list(_RECONCILE_NEXT):
+        if basket_id not in live_ids:
+            _RECONCILE_NEXT.pop(basket_id, None)
+            _RECONCILE_BACKOFF.pop(basket_id, None)
+
+    inkeys: dict[str, str | None] = {}
+    activated = 0
+    now = time.time()
+    for basket in baskets:
+        if _RECONCILE_NEXT.get(basket.id, 0.0) > now:
+            continue
+        try:
+            if basket.event_id not in inkeys:
+                event = await get_event(basket.event_id)
+                wallet = await get_wallet_crud(event.wallet) if event else None
+                inkeys[basket.event_id] = wallet.inkey if wallet else None
+            inkey = inkeys[basket.event_id]
+            if not inkey:
+                continue
+            charge = await handle_basket_payment(basket.id, inkey)
+            if charge and charge.get("paid"):
+                activated += 1
+                _RECONCILE_NEXT.pop(basket.id, None)
+                _RECONCILE_BACKOFF.pop(basket.id, None)
+                logger.info(
+                    f"Reconciled basket {basket.id} from charge "
+                    f"{basket.satspay_charge_id}."
+                )
+                continue
+        except Exception as exc:
+            logger.warning(f"Failed to reconcile basket {basket.id}: {exc}")
+        step = _RECONCILE_BACKOFF.get(basket.id, 0.0)
+        step = min(
+            RECONCILE_MAX_INTERVAL,
+            max(RECONCILE_MIN_INTERVAL, step * 2 if step else RECONCILE_MIN_INTERVAL),
+        )
+        _RECONCILE_BACKOFF[basket.id] = step
+        _RECONCILE_NEXT[basket.id] = time.time() + step
+    return activated
 
 
 # ---------------------------------------------------------------------------

@@ -31,7 +31,12 @@ def events_stop():
 
 
 def events_start():
-    pass
+    from lnbits.tasks import create_permanent_unique_task
+
+    from .tasks import wait_for_paid_baskets
+
+    task = create_permanent_unique_task("ext_events_reconcile", wait_for_paid_baskets)
+    scheduled_tasks.append(task)
 
 
 __all__ = ["db", "events_ext", "events_start", "events_static_files", "events_stop"]
