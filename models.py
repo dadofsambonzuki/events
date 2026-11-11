@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import Query
 from lnbits.db import FilterModel
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PromoSource(BaseModel):
@@ -27,21 +27,22 @@ class PromoSource(BaseModel):
     move: bool = False
     credit: str = "none"
 
-    @validator("credit")
+    @field_validator("credit")
+    @classmethod
     def validate_credit(cls, v):
         assert v in ("none", "paid"), "source credit must be 'none' or 'paid'."
         return v
 
-    @root_validator
-    def drop_ticket_condition_without_ticket(cls, values):
+    @model_validator(mode="after")
+    def drop_ticket_condition_without_ticket(self):
         # Coerce rather than raise: this JSON is parsed on every read, so a
         # stored row with `move`/`credit` but no ticket requirement must not
         # make the whole event unloadable. Those flags are meaningless without
         # a ticket, so they simply fall away.
-        if not values.get("require_ticket", False):
-            values["move"] = False
-            values["credit"] = "none"
-        return values
+        if not self.require_ticket:
+            self.move = False
+            self.credit = "none"
+        return self
 
 
 class PromoGrant(BaseModel):
@@ -58,7 +59,8 @@ class PromoGrant(BaseModel):
     ticket_type_id: str
     per_source: int = 1
 
-    @validator("per_source")
+    @field_validator("per_source")
+    @classmethod
     def validate_per_source(cls, v):
         assert v >= 1, "per_source must be >= 1."
         return v
@@ -110,7 +112,8 @@ class PromoCode(BaseModel):
     # derived from the source ticket. Never persisted as configuration.
     credit_value: float | None = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def migrate_legacy_axis(cls, values):
         # Rows written before the offer-code axis stored `type: "code"|"ticket"`
         # and, for ticket rules, the sentinel code "TICKETID"; rows written by
@@ -135,53 +138,55 @@ class PromoCode(BaseModel):
             values["code"] = ""
         return values
 
-    @validator("code")
+    @field_validator("code")
+    @classmethod
     def uppercase_code(cls, v):
         return v.upper()
 
-    @validator("redemptions_per_ticket")
+    @field_validator("redemptions_per_ticket")
+    @classmethod
     def validate_redemptions_per_ticket(cls, v):
         assert v is not None and v >= 1, "redemptions_per_ticket must be >= 1."
         return v
 
-    @validator("max_tickets")
+    @field_validator("max_tickets")
+    @classmethod
     def validate_max_tickets(cls, v):
         if v is not None:
             assert v >= 1, "max_tickets must be >= 1."
         return v
 
-    @validator("discount_percent")
+    @field_validator("discount_percent")
+    @classmethod
     def validate_discount_percent(cls, v):
         if v is not None:
             assert 0 <= v <= 100, "Discount must be between 0 and 100."
         return v
 
-    @validator("discount_fixed")
+    @field_validator("discount_fixed")
+    @classmethod
     def validate_discount_fixed(cls, v):
         if v is not None:
             assert v >= 0, "Fixed discount must be >= 0."
         return v
 
-    @root_validator
-    def validate_code_present(cls, values):
+    @model_validator(mode="after")
+    def validate_code_present(self):
         # A code is required unless the rule is activated by a ticket alone.
-        source = values.get("source")
-        require_ticket = getattr(source, "require_ticket", False)
-        if not require_ticket and not (values.get("code") or "").strip():
+        if not self.source.require_ticket and not (self.code or "").strip():
             raise ValueError(
                 "a promo code is required unless the rule requires a ticket"
             )
-        return values
+        return self
 
-    @root_validator
-    def validate_discount_exclusive(cls, values):
-        percent = values.get("discount_percent")
-        fixed = values.get("discount_fixed")
-        if percent is not None and fixed is not None:
-            values["discount_fixed"] = None
-        return values
+    @model_validator(mode="after")
+    def validate_discount_exclusive(self):
+        if self.discount_percent is not None and self.discount_fixed is not None:
+            self.discount_fixed = None
+        return self
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def coerce_grant_requires_source(cls, values):
         # A grant needs a source ticket to gate on, so it IMPLIES the source
         # gate. A discount is deliberately NOT cleared here: a grant rule is
@@ -200,7 +205,7 @@ class PromoCode(BaseModel):
         elif source is None:
             values["source"] = {"require_ticket": True}
         elif not getattr(source, "require_ticket", False):
-            values["source"] = {**source.dict(), "require_ticket": True}
+            values["source"] = {**source.model_dump(), "require_ticket": True}
         return values
 
 
