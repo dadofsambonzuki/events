@@ -1964,6 +1964,9 @@ async def _send_basket_ticket_notifications(
             )
             for t in email_tickets:
                 t.extra.email_notification_sent = True
+                # Persist it: the flag is how the admin answers "did this buyer
+                # get their ticket?", and an unsaved one reads as never sent.
+                await update_ticket(t)
         except Exception as exc:
             logger.warning(f"Failed to email tickets to {email}: {exc}")
 
