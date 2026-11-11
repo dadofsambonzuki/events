@@ -13,6 +13,8 @@ this only surfaced when the extension was ported to pydantic 2.
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+
 from events import crud
 from events import models as M
 from events import services as S
@@ -181,5 +183,79 @@ def test_pence_fixed_discount_is_accepted_and_applied():
         )
         assert totals.discount == 12.5, f"discount is {totals.discount}"
         assert totals.total == round(PENCE - 12.5, 2), f"total is {totals.total}"
+
+    asyncio.run(run())
+
+
+def test_sats_charge_amount_is_whole_sats():
+    """A sats checkout must hand SatsPay a whole-satoshi INT amount, even with a
+    percentage discount in play: `amount` is an int field, so a float total is
+    rejected before any charge exists. `calculate_basket_total` floors a sats
+    total already, and the payload is rounded as well so the boundary cannot
+    regress."""
+
+    async def run():
+        ev = await make_event(event_id="EVSP", currency="sats", fiat_currency="")
+        await crud.create_ticket_type(M.TicketType(
+            id="ODD", event_id="EVSP", name="Odd sats", price=1001,
+            max_tickets=100, available_from=TODAY, available_to="2026-12-31",
+            sort_order=0,
+        ))
+        ev.extra.promo_codes = [M.PromoCode(code="TEN", discount_percent=10)]
+        await crud.update_event(ev)
+
+        seen = stub_charge()
+        data = M.CreateBasket(
+            name="Buyer", email="buyer@example.test",
+            items=[M.BasketItem(ticket_type_id="ODD", quantity=1)],
+            promo_codes=["TEN"], payment_method="ln",
+        )
+        _basket, tickets, totals, _charge = await S.create_basket_with_charge(
+            ev, data, "key", "https://example.test"
+        )
+        assert totals.total == 900, f"10% off 1001 floors to {totals.total}"
+        assert seen["amount"] == 900, f"whole sats, got {seen['amount']!r}"
+        assert isinstance(seen["amount"], int), "SatsPay requires an int amount"
+        assert tickets[0].extra.sats_paid == 900, "the ticket records whole sats"
+
+    asyncio.run(run())
+
+
+def test_paid_charge_without_tickets_is_refused():
+    """The money-in-nothing-issued guard. A charge can settle for a basket whose
+    tickets were never written (the checkout died after creating the charge), and
+    activating that basket would mark it paid, issue nothing and leave no trace
+    that a buyer is owed a ticket."""
+
+    async def run():
+        await make_event(event_id="EVG")
+        basket = M.Basket(
+            id="B-ORPHAN", event_id="EVG", wallet="w1",
+            email="buyer@example.test", name="Buyer", total=83.58,
+            satspay_charge_id="chg-orphan",
+        )
+        await crud.create_basket(basket)
+        stub_charge()
+
+        async def paid_charge(api_key, charge_id):
+            return {"id": charge_id, "paid": True}
+
+        S.get_satspay_charge = paid_charge
+
+        with pytest.raises(ValueError, match="has no tickets"):
+            await S.handle_basket_payment("B-ORPHAN", "key")
+        assert (await crud.get_basket("B-ORPHAN")).paid is False, (
+            "a ticketless paid basket must stay unpaid, not be quietly closed"
+        )
+
+        # Once the tickets exist, the same call activates as before.
+        await crud.create_ticket(
+            "T-ORPHAN", "w1", "EVG", "Buyer", "buyer@example.test",
+            {"ticket_type_id": FAIR}, FAIR, "B-ORPHAN",
+        )
+        charge = await S.handle_basket_payment("B-ORPHAN", "key")
+        assert charge and charge["paid"] is True
+        assert (await crud.get_basket("B-ORPHAN")).paid is True
+        assert (await crud.get_ticket("T-ORPHAN")).paid is True
 
     asyncio.run(run())

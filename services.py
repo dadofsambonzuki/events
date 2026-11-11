@@ -1171,7 +1171,11 @@ async def create_basket_with_charge(
             base_data["currency"] = event.currency.lower()
             base_data["currency_amount"] = float(totals.total)
         else:
-            base_data["amount"] = totals.total
+            # SatsPay's `amount` is an int. `calculate_basket_total` already
+            # floors a sats total to whole sats, but the charge payload is the
+            # boundary that must never carry a float: pydantic rejects it there
+            # and the buyer gets a 400 before any charge exists.
+            base_data["amount"] = int(round(float(totals.total)))
 
         charge_data = dict(base_data)
         if "ln" in methods:
@@ -1339,6 +1343,16 @@ async def handle_basket_payment(
         raise ValueError("Event not found for basket.")
 
     tickets = await get_basket_tickets(basket_id)
+    if not tickets:
+        # The charge settled but the basket never got tickets: the checkout died
+        # between creating the charge and writing them (see the sats_paid /
+        # onchain_amount_sat int trap). Marking the basket paid here would
+        # swallow the money -- no ticket, no email, nothing left to chase -- so
+        # refuse and leave it unpaid for a human to issue by hand.
+        raise ValueError(
+            f"Paid basket {basket_id} has no tickets (charge "
+            f"{basket.satspay_charge_id}); not activating."
+        )
     await _activate_basket_tickets(basket, tickets, event)
 
     return charge
