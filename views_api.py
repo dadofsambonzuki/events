@@ -73,6 +73,7 @@ from .services import (
     preview_ticket_email_html,
     refund_tickets,
     resend_ticket_email_notification,
+    sats_amount,
     send_bulk_message,
     send_bulk_ticket_emails,
     toggle_ticket_deactivation,
@@ -481,7 +482,7 @@ async def api_create_basket(
     if charge:
         payment_request = TicketPaymentRequest(
             payment_hash=basket.id,
-            onchain_amount_sat=totals.total,
+            onchain_amount_sat=sats_amount(event, totals.total),
             satspay_charge_url=f"/satspay/{charge['id']}",
             basket_id=basket.id,
         )
@@ -746,7 +747,7 @@ async def api_ticket_create_legacy(
     if charge:
         return TicketPaymentRequest(
             payment_hash=basket.id,
-            onchain_amount_sat=totals.total,
+            onchain_amount_sat=sats_amount(event, totals.total),
             satspay_charge_url=f"/satspay/{charge['id']}",
             basket_id=basket.id,
         )

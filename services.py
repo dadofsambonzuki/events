@@ -62,6 +62,26 @@ def _internal_host() -> str:
     return "127.0.0.1" if settings.host in ("0.0.0.0", "::") else settings.host
 
 
+def _prices_in_sats(event) -> bool:
+    """True when the event's prices are denominated in sats."""
+    return (event.currency or "").lower() in ("sat", "sats")
+
+
+def sats_amount(event, total: float) -> int | None:
+    """``total`` as a satoshi figure, or None when the event prices in fiat.
+
+    The sats-denominated fields (``TicketExtra.sats_paid``, the payment
+    response's ``onchain_amount_sat``) are ints, so a currency total with pence
+    can neither be stored nor serialised into them: pydantic v2 rejects the
+    float outright, which failed the whole checkout AFTER the charge had been
+    created (v1 truncated 157.21 to 157 sats, silently wrong). The currency
+    amount lives in ``paid_value``; ``None`` here means "not a sats figure".
+    """
+    if not _prices_in_sats(event):
+        return None
+    return int(round(float(total)))
+
+
 async def create_satspay_charge(api_key: str, data: dict) -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -1193,6 +1213,11 @@ async def create_basket_with_charge(
 
     await create_basket_from_model(basket)
 
+    # `sats_paid` is the satoshi figure a Lightning refund pays back, so it
+    # only exists for a sats-priced event (see `sats_amount`); the currency
+    # amount is recorded as `paid_value` when the basket activates.
+    sats_paid = sats_amount(event, totals.total)
+
     for item in data.items:
         tt = next(tt for tt in ticket_types if tt.id == item.ticket_type_id)
         for _ in range(item.quantity):
@@ -1209,7 +1234,7 @@ async def create_basket_with_charge(
                     "refund_address": data.refund_address,
                     "nostr_identifier": data.nostr_identifier,
                     "ticket_base_url": base_url,
-                    "sats_paid": totals.total,
+                    "sats_paid": sats_paid,
                     "satspay_charge_id": basket.satspay_charge_id,
                     "applied_promo_code": ",".join(promo_code_strings) if promo_code_strings else None,
                 },

@@ -155,3 +155,20 @@ async def get_basket(basket_id):
 
 async def get_event_baskets(event_id):
     return [b for b in _STORE["baskets"].values() if b.event_id == event_id]
+
+
+async def get_unpaid_baskets_with_charges(since):
+    """Unpaid baskets carrying a SatsPay charge, newest first.
+
+    The reconcile sweep's query. `Basket.time` is a datetime here (a unix
+    timestamp in the database), so compare on the float behind it.
+    """
+    def _ts(basket):
+        t = basket.time
+        return t.timestamp() if hasattr(t, "timestamp") else float(t)
+
+    rows = [
+        b for b in _STORE["baskets"].values()
+        if not b.paid and b.satspay_charge_id and _ts(b) > since
+    ]
+    return sorted(rows, key=_ts, reverse=True)

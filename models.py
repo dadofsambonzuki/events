@@ -81,7 +81,10 @@ class PromoCode(BaseModel):
     # of its own, so without this it is unidentifiable in the promo list.
     title: str = ""
     discount_percent: float | None = None
-    discount_fixed: int | None = None
+    # A fixed discount is an amount in the EVENT's currency, so it may carry
+    # pence (a GBP event needs "12.50", not "12"): as an int, pydantic v2
+    # rejected the admin's save and v1 silently truncated it to whole units.
+    discount_fixed: float | None = None
     active: bool = True
     combinable: bool = True
     max_uses: int | None = None
@@ -420,7 +423,7 @@ class CreateBasket(BaseModel):
 class BasketDiscount(BaseModel):
     code: str
     discount_percent: float | None = None
-    discount_fixed: int | None = None
+    discount_fixed: float | None = None
     amount_saved: float = 0
 
 
