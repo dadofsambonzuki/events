@@ -119,6 +119,7 @@ def test_checkin_records_the_hand_over_and_never_re_checks_in():
 
         first = await S.checkin_view("C1", "tok123", commit=True)
         assert first.already_checked_in is True
+        assert first.event_name == "Bitfest", "the public page gets the name here"
         assert first.ticket.extra.bands_issued == ["white"]
         assert first.checked_in_at is not None
 

@@ -1,6 +1,11 @@
 ;window.PageEventsRegister = {
   template: '#page-events-register',
   computed: {
+    eventName() {
+      // The scanner page is public: the name travels with the check-in answer
+      // rather than costing an authenticated GET /events/{id}.
+      return (this.lastScan && this.lastScan.event_name) || ''
+    },
     shownBands() {
       return (this.lastScan && this.lastScan.bands) || []
     },
@@ -33,7 +38,6 @@
   data() {
     return {
       eventId: null,
-      eventName: '',
       token: '',
       lastScan: null,
       busy: false,
@@ -155,15 +159,6 @@
     // The scanner link carries the event's token: the page is public, the
     // hand-over endpoint is not.
     this.token = (this.$route.query && this.$route.query.k) || ''
-    try {
-      const {data} = await LNbits.api.request(
-        'GET',
-        `/events/api/v1/events/${this.eventId}`
-      )
-      this.eventName = data.name || ''
-    } catch (error) {
-      // ignore
-    }
     this.loadScannedTickets()
   }
 }
