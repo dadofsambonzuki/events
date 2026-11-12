@@ -70,6 +70,7 @@ from .models import (
 )
 from .services import (
     backfill_paid_values,
+    CheckinError,
     checkin_view,
     seed_bands,
     calculate_basket_total,
@@ -800,6 +801,8 @@ async def api_checkin_view(ticket_id: str, k: str = "") -> CheckinView:
         return await checkin_view(ticket_id, k)
     except PermissionError as exc:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc))
+    except CheckinError as exc:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
 
@@ -811,6 +814,8 @@ async def api_checkin(ticket_id: str, data: CheckinRequest) -> CheckinView:
         return await checkin_view(ticket_id, data.k, data.bands, commit=True)
     except PermissionError as exc:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc))
+    except CheckinError as exc:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
 
@@ -869,7 +874,7 @@ async def api_update_bands(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="A rule needs a ticket type, a code or a code prefix.",
             )
-        missing = [t for t in rule.ticket_type_ids if t not in types]
+        missing = [t for t in (rule.ticket_type_ids or []) if t not in types]
         if missing:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,

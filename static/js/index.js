@@ -36,6 +36,36 @@ window.PageEvents = {
       }
       return text
     },
+    bandEditBandOptions() {
+      // Chips carry the band's own colour, so the door's instruction and the
+      // admin's rule read the same at a glance.
+      return (this.bandEditDialog.bands || []).map(band => ({
+        label: band.label ? `${band.name} — ${band.label}` : band.name,
+        value: band.id,
+        colour: band.colour || '#ffffff'
+      }))
+    },
+    bandEditTypeOptions() {
+      return (this.bandEditDialog.ticketTypes || []).map(tt => ({
+        label: tt.name,
+        value: tt.id
+      }))
+    },
+    bandEditDayOptions() {
+      // '' (not null) so the select can display the "any day" label: Quasar
+      // treats null as "nothing selected" and would show the placeholder.
+      return [
+        {label: this.$t('events.band_rule_day_any'), value: ''},
+        {label: this.$t('events.band_rule_day_fri'), value: 'fri'},
+        {label: this.$t('events.band_rule_day_sat'), value: 'sat'}
+      ]
+    },
+    bandEditPerOptions() {
+      return [
+        {label: this.$t('events.band_rule_per_ticket'), value: 'ticket'},
+        {label: this.$t('events.band_rule_per_redemption'), value: 'redemption'}
+      ]
+    },
     eventsColumns() {
       return [
         {
@@ -219,6 +249,17 @@ active: true,
         rules: 0,
         loading: false
       },
+      bandEditDialog: {
+        show: false,
+        eventId: null,
+        loading: false,
+        saving: false,
+        error: '',
+        source: '',
+        bands: [],
+        rules: [],
+        ticketTypes: []
+      },
       watchonlyWallets: [],
       paymentMethods: {
         ln: false,
@@ -263,6 +304,236 @@ active: true,
           type: 'positive'
         })
       })
+    },
+    openBandEditor() {
+      const eventId = this.scannerDialog.eventId
+      if (!eventId) return
+      this.bandEditDialog.eventId = eventId
+      this.bandEditDialog.show = true
+      this.bandEditDialog.error = ''
+      this.loadBandScheme(eventId)
+    },
+    bandEditWallet(eventId) {
+      const event = this.events.find(ev => ev.id === eventId)
+      return _.findWhere(this.g.user.wallets, {id: event?.wallet})
+    },
+    async loadBandScheme(eventId) {
+      // POST /scanner only returns counts, so the full scheme comes from the
+      // event record. That endpoint is the public shape: it carries
+      // extra.bands / extra.band_rules but 410s once an event is sold out, so
+      // the already-loaded events row is the fallback rather than a dead end.
+      this.bandEditDialog.loading = true
+      this.bandEditDialog.error = ''
+      this.bandEditDialog.source = ''
+      this.bandEditDialog.bands = []
+      this.bandEditDialog.rules = []
+      this.bandEditDialog.ticketTypes = []
+      const wallet = this.bandEditWallet(eventId)
+      let event = null
+      let origin = 'event'
+      try {
+        const {data} = await LNbits.api.request(
+          'GET',
+          `/events/api/v1/events/${eventId}`,
+          wallet?.inkey
+        )
+        event = data
+      } catch (error) {
+        const local = this.events.find(ev => ev.id === eventId)
+        if (!local) {
+          this.bandEditDialog.error = this.$t('events.band_load_failed')
+          this.bandEditDialog.loading = false
+          return
+        }
+        event = local
+        origin = 'list'
+      }
+      const extra = event.extra || event
+      const bands = Array.isArray(extra.bands) ? extra.bands : []
+      const rules = Array.isArray(extra.band_rules)
+        ? extra.band_rules
+        : Array.isArray(extra.rules)
+          ? extra.rules
+          : []
+      this.bandEditDialog.source = this.$t(
+        origin === 'list' ? 'events.band_source_list' : 'events.band_source_event'
+      )
+      this.bandEditDialog.bands = bands.map(band => ({
+        id: band.id || '',
+        name: band.name || '',
+        label: band.label || '',
+        colour: band.colour || '#ffffff'
+      }))
+      this.bandEditDialog.rules = rules.map(rule => ({
+        band_ids: Array.isArray(rule.band_ids) ? [...rule.band_ids] : [],
+        ticket_type_ids: Array.isArray(rule.ticket_type_ids)
+          ? [...rule.ticket_type_ids]
+          : [],
+        promo_prefixes: this.joinCsv(rule.promo_prefixes),
+        promo_codes: this.joinCsv(rule.promo_codes),
+        day: rule.day || '',
+        per: rule.per || 'ticket',
+        note: rule.note || ''
+      }))
+      const inline = event.ticket_types || extra.ticket_types || null
+      if (Array.isArray(inline)) {
+        this.bandEditDialog.ticketTypes = inline
+        this.bandEditDialog.source += ' ' + this.$t('events.band_types_inline')
+      } else {
+        try {
+          const {data: types} = await LNbits.api.request(
+            'GET',
+            `/events/api/v1/ticket-types/${eventId}`,
+            wallet?.inkey
+          )
+          this.bandEditDialog.ticketTypes = Array.isArray(types) ? types : []
+          this.bandEditDialog.source +=
+            ' ' + this.$t('events.band_types_endpoint')
+        } catch (error) {
+          this.bandEditDialog.ticketTypes = []
+        }
+      }
+      this.bandEditDialog.loading = false
+    },
+    joinCsv(value) {
+      return Array.isArray(value) ? value.join(', ') : value || ''
+    },
+    splitCsv(value) {
+      if (Array.isArray(value)) {
+        return value.map(item => String(item).trim()).filter(Boolean)
+      }
+      return String(value || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+    },
+    slugBandId(name) {
+      const base =
+        String(name || '')
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'band'
+      const used = new Set(
+        this.bandEditDialog.bands.map(band => String(band.id || '').toLowerCase())
+      )
+      let id = base
+      let n = 2
+      while (used.has(id)) {
+        id = `${base}-${n}`
+        n += 1
+      }
+      return id
+    },
+    addBand() {
+      const name = this.$t('events.band_new_name')
+      this.bandEditDialog.bands.push({
+        id: this.slugBandId(name),
+        name,
+        label: '',
+        colour: '#ffffff'
+      })
+    },
+    bandUsageCount(bandId) {
+      return this.bandEditDialog.rules.filter(rule =>
+        (rule.band_ids || []).includes(bandId)
+      ).length
+    },
+    deleteBand(index) {
+      // The id is what rules point at: deleting a referenced band would leave
+      // a rule that the server rejects, so refuse and say how many use it.
+      const band = this.bandEditDialog.bands[index]
+      if (!band) return
+      const count = this.bandUsageCount(band.id)
+      if (count) {
+        this.bandEditDialog.error = this.$t('events.band_delete_blocked', {
+          name: band.name || band.id,
+          count
+        })
+        return
+      }
+      this.bandEditDialog.error = ''
+      this.bandEditDialog.bands.splice(index, 1)
+    },
+    bandSwatchStyle(colour) {
+      return {background: colour || '#ffffff'}
+    },
+    addBandRule() {
+      this.bandEditDialog.rules.push({
+        band_ids: [],
+        ticket_type_ids: [],
+        promo_prefixes: '',
+        promo_codes: '',
+        day: '',
+        per: 'ticket',
+        note: ''
+      })
+    },
+    deleteBandRule(index) {
+      this.bandEditDialog.rules.splice(index, 1)
+    },
+    async saveBands() {
+      const eventId = this.bandEditDialog.eventId
+      const wallet = this.bandEditWallet(eventId)
+      if (!wallet) {
+        this.bandEditDialog.error = this.$t('events.band_save_failed')
+        return
+      }
+      this.bandEditDialog.saving = true
+      this.bandEditDialog.error = ''
+      const payload = {
+        bands: this.bandEditDialog.bands.map(band => ({
+          id: band.id,
+          name: band.name,
+          label: band.label,
+          colour: band.colour
+        })),
+        rules: this.bandEditDialog.rules.map(rule => ({
+          band_ids: rule.band_ids || [],
+          ticket_type_ids: rule.ticket_type_ids || [],
+          promo_prefixes: this.splitCsv(rule.promo_prefixes),
+          promo_codes: this.splitCsv(rule.promo_codes),
+          day: rule.day || null,
+          per: rule.per || 'ticket',
+          note: rule.note || ''
+        }))
+      }
+      try {
+        // Validation lives on the server; the button stays clickable so a bad
+        // rule produces the server's sentence instead of a silent no-op.
+        const {data} = await LNbits.api.request(
+          'PUT',
+          `/events/api/v1/events/${eventId}/bands`,
+          wallet.adminkey,
+          payload
+        )
+        this.scannerDialog.bands = data.bands
+        this.scannerDialog.rules = data.rules
+        const local = this.events.find(ev => ev.id === eventId)
+        if (local) {
+          local.extra = {
+            ...(local.extra || {}),
+            bands: payload.bands,
+            band_rules: payload.rules
+          }
+        }
+        this.bandEditDialog.show = false
+        Quasar.Notify.create({
+          message: this.$t('events.band_saved', {
+            bands: data.bands,
+            rules: data.rules
+          }),
+          type: 'positive'
+        })
+      } catch (error) {
+        const detail = error?.response?.data?.detail
+        this.bandEditDialog.error =
+          (typeof detail === 'string' && detail) ||
+          this.$t('events.band_save_failed')
+      } finally {
+        this.bandEditDialog.saving = false
+      }
     },
     formatISODate(value) {
       const d = new Date(value)

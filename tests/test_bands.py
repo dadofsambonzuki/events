@@ -221,3 +221,130 @@ def test_band_scheme_is_validated_server_side(monkeypatch):
         assert ev.extra.scanner_token, "saving the scheme also mints the scanner token"
 
     asyncio.run(run())
+
+
+def test_seeded_scheme_saves_through_the_api(monkeypatch):
+    """The editor saves what `seed_bands` produced -- role rules carry no
+    ticket_type_ids, which used to 500 the endpoint outright."""
+    from types import SimpleNamespace
+
+    from events import views_api as V
+
+    async def run():
+        ev = await make_event()
+        types = [
+            M.TicketType(id=WEEKEND, event_id="EVB", name="Single - Weekend", price=1,
+                         max_tickets=1, available_from=TODAY, available_to=TODAY,
+                         sort_order=0, extra={}),
+            M.TicketType(id=ONEDAY, event_id="EVB", name="Single - One Day Pass", price=1,
+                         max_tickets=1, available_from=TODAY, available_to=TODAY,
+                         sort_order=0, extra={}),
+        ]
+        ev.extra.bands = [b.model_copy() for b in S.DEFAULT_BANDS]
+        ev.extra.band_rules = S.default_band_rules(ev, types)
+
+        async def fake_event(_id):
+            return ev
+
+        async def fake_update(event):
+            return event
+
+        async def fake_types(_id):
+            return types
+
+        monkeypatch.setattr(V, "get_event", fake_event)
+        monkeypatch.setattr(V, "update_event_crud", fake_update)
+        monkeypatch.setattr(V, "get_ticket_types", fake_types)
+        payload = M.BandSetup(bands=ev.extra.bands, rules=ev.extra.band_rules)
+        out = await V.api_update_bands(
+            "EVB", payload, SimpleNamespace(wallet=SimpleNamespace(id="w1"))
+        )
+        assert out["bands"] == len(ev.extra.bands) and out["rules"] == len(payload.rules)
+
+    asyncio.run(run())
+
+
+def test_one_role_band_per_person_across_orders():
+    """A speaker can redeem twice into two orders: same code + same buyer must
+    not hand out a second Yellow."""
+    async def run():
+        ev = await make_event()
+        a = await make_ticket(
+            "D1", WEEKEND, basket="B1",
+            extra=M.TicketExtra(applied_promo_code="SPK-AAAAAA"),
+        )
+        b = await make_ticket(
+            "D2", WEEKEND, basket="B2",
+            extra=M.TicketExtra(applied_promo_code="SPK-AAAAAA"),
+        )
+        first, _ = S.resolve_bands(ev, a, [], FRI)
+        assert [x.id for x in first] == ["white", "yellow"]
+        a.extra.bands_issued = ["white", "yellow"]
+        await crud.update_ticket(a)
+
+        view = await S.checkin_view("D2", "tok123")
+        assert [x.id for x in view.bands] == ["white"]
+        assert "already issued" in view.note
+    asyncio.run(run())
+
+
+def test_two_codes_on_one_ticket_keep_both_role_bands():
+    async def run():
+        ev = await make_event()
+        ev.extra.bands.append(M.Band(id="black", name="Black", label="Crew", colour="#000"))
+        ev.extra.band_rules.append(
+            M.BandRule(band_ids=["black"], per="redemption", promo_codes=["VOLUNTEER"])
+        )
+        t = await make_ticket(
+            "E1", WEEKEND,
+            extra=M.TicketExtra(applied_promo_code="VOLUNTEER,SPK-AAAAAA"),
+        )
+        bands, _ = S.resolve_bands(ev, t, [], FRI)
+        assert [b.id for b in bands] == ["white", "yellow", "black"]
+    asyncio.run(run())
+
+
+def test_override_is_validated_and_must_not_be_empty():
+    async def run():
+        ev = await make_event()
+        await make_ticket("F1", WEEKEND)
+        with pytest.raises(S.CheckinError):
+            await S.checkin_view("F1", "tok123", [], commit=True)
+        with pytest.raises(S.CheckinError):
+            await S.checkin_view("F1", "tok123", ["ghost"], commit=True)
+        ok = await S.checkin_view("F1", "tok123", ["purple"], commit=True)
+        assert ok.ticket.extra.bands_issued == ["purple"]
+    asyncio.run(run())
+
+
+def test_a_legacy_registered_ticket_can_still_record_its_bands():
+    """The old register endpoint set registered=True and recorded nothing; that
+    ticket must still be able to record what it was handed, once."""
+    async def run():
+        ev = await make_event()
+        t = await make_ticket("G1", WEEKEND)
+        t.registered = True
+        await crud.update_ticket(t)
+        view = await S.checkin_view("G1", "tok123", ["white", "yellow"], commit=True)
+        assert view.ticket.extra.bands_issued == ["white", "yellow"]
+        again = await S.checkin_view("G1", "tok123", ["white"], commit=True)
+        assert again.ticket.extra.bands_issued == ["white", "yellow"], "record is final"
+    asyncio.run(run())
+
+
+def test_concurrent_scans_issue_one_role_band():
+    """Two staff, two phones, one speaker order: the lock must yield one Yellow."""
+    async def run():
+        ev = await make_event()
+        a = await make_ticket("H1", WEEKEND, basket="B9",
+                              extra=M.TicketExtra(applied_promo_code="SPK-AAAAAA"))
+        b = await make_ticket("H2", WEEKEND, basket="B9",
+                              extra=M.TicketExtra(applied_promo_code="SPK-AAAAAA"))
+        await asyncio.gather(
+            S.checkin_view("H1", "tok123", commit=True),
+            S.checkin_view("H2", "tok123", commit=True),
+        )
+        stored = [t for t in (await crud.get_ticket("H1"), await crud.get_ticket("H2")) ]
+        yellows = sum(1 for t in stored if "yellow" in (t.extra.bands_issued or []))
+        assert yellows == 1, f"yellow issued {yellows}x"
+    asyncio.run(run())

@@ -259,10 +259,331 @@
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat color="grey" v-text="$t('cancel')" @click="scannerDialog.show = false"></q-btn>
+                <q-btn flat color="primary" icon="how_to_reg" v-text="$t('events.checkin_edit_bands')" @click="openBandEditor"></q-btn>
                 <q-btn flat color="negative" v-text="$t('events.checkin_rotate')" :loading="scannerDialog.loading" @click="openScanner(scannerDialog.eventId, true)"></q-btn>
                 <q-btn unelevated color="primary" icon="content_copy" v-text="$t('events.checkin_copy_link')" @click="copyScannerLink"></q-btn>
               </q-card-actions>
             </q-card>
+      <q-dialog v-model="bandEditDialog.show" position="top">
+        <q-card
+          class="q-pa-lg q-pt-xl lnbits__dialog-card"
+          style="width: 620px; max-width: 94vw"
+        >
+          <div class="text-subtitle1" v-text="$t('events.band_edit_title')"></div>
+          <div
+            class="text-caption text-grey-6 q-mt-xs"
+            v-text="$t('events.band_edit_hint')"
+          ></div>
+
+          <q-card-section
+            class="q-pa-none"
+            style="max-height: 62vh; overflow-y: auto; overflow-x: hidden"
+          >
+            <div
+              v-if="bandEditDialog.loading"
+              class="row items-center q-gutter-sm q-mt-md"
+            >
+              <q-spinner size="18px"></q-spinner>
+              <span
+                class="text-caption text-grey-6"
+                v-text="$t('events.band_loading')"
+              ></span>
+            </div>
+
+            <template v-else>
+              <div
+                v-if="bandEditDialog.source"
+                class="text-caption text-grey-6 q-mt-sm"
+                v-text="bandEditDialog.source"
+              ></div>
+              <q-separator class="q-my-md"></q-separator>
+              <div class="row items-center no-wrap">
+                <div
+                  class="col text-caption text-uppercase text-weight-medium"
+                  v-text="$t('events.band_section')"
+                ></div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    icon="add"
+                    color="primary"
+                    v-text="$t('events.band_add')"
+                    @click="addBand"
+                  ></q-btn>
+                </div>
+              </div>
+              <div
+                class="text-caption text-grey-6"
+                v-text="$t('events.band_section_hint')"
+              ></div>
+              <div
+                v-if="!bandEditDialog.bands.length"
+                class="text-caption text-grey-6 q-mt-sm"
+                v-text="$t('events.band_no_bands')"
+              ></div>
+
+              <div
+                v-for="(band, index) in bandEditDialog.bands"
+                :key="band.id"
+                class="q-mt-sm"
+              >
+                <div class="row items-center q-gutter-sm no-wrap">
+                  <span
+                    class="band-swatch"
+                    :style="bandSwatchStyle(band.colour)"
+                  ></span>
+                  <q-input
+                    class="col"
+                    filled
+                    dense
+                    v-model.trim="band.name"
+                    :label="$t('events.band_col_name')"
+                  ></q-input>
+                  <q-input
+                    class="col"
+                    filled
+                    dense
+                    v-model.trim="band.label"
+                    :label="$t('events.band_col_label')"
+                  ></q-input>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    icon="delete"
+                    color="negative"
+                    @click="deleteBand(index)"
+                  >
+                    <q-tooltip>{{ $t('events.band_delete') }}</q-tooltip>
+                  </q-btn>
+                </div>
+                <div class="row items-center q-gutter-sm q-mt-xs">
+                  <q-input
+                    class="col"
+                    filled
+                    dense
+                    v-model.trim="band.colour"
+                    :label="$t('events.band_col_colour')"
+                  >
+                    <template v-slot:append>
+                      <q-icon name="colorize" class="cursor-pointer">
+                        <q-popup-proxy
+                          transition-show="scale"
+                          transition-hide="scale"
+                        >
+                          <q-color v-model="band.colour"></q-color>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                  <div
+                    class="col text-caption text-grey-6 text-mono"
+                    v-text="$t('events.band_id_caption', {id: band.id})"
+                  ></div>
+                </div>
+                <div
+                  v-if="bandUsageCount(band.id)"
+                  class="text-caption text-grey-6"
+                  v-text="
+                    $t('events.band_in_use', {
+                      count: bandUsageCount(band.id)
+                    })
+                  "
+                ></div>
+              </div>
+
+              <q-separator class="q-my-md"></q-separator>
+              <div class="row items-center no-wrap">
+                <div
+                  class="col text-caption text-uppercase text-weight-medium"
+                  v-text="$t('events.band_rules_section')"
+                ></div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    icon="add"
+                    color="primary"
+                    v-text="$t('events.band_rule_add')"
+                    @click="addBandRule"
+                  ></q-btn>
+                </div>
+              </div>
+              <div
+                class="text-caption text-grey-6"
+                v-text="$t('events.band_rules_hint')"
+              ></div>
+              <div
+                v-if="!bandEditDialog.rules.length"
+                class="text-caption text-grey-6 q-mt-sm"
+                v-text="$t('events.band_no_rules')"
+              ></div>
+
+              <div
+                v-for="(rule, index) in bandEditDialog.rules"
+                :key="index"
+                class="band-rule q-mt-sm q-pa-sm"
+              >
+                <div class="row items-center no-wrap">
+                  <div
+                    class="col text-caption text-weight-medium"
+                    v-text="$t('events.band_rule_n', {n: index + 1})"
+                  ></div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      icon="delete"
+                      color="negative"
+                      @click="deleteBandRule(index)"
+                    >
+                      <q-tooltip>{{ $t('events.band_rule_delete') }}</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+
+                <q-select
+                  filled
+                  dense
+                  multiple
+                  use-chips
+                  emit-value
+                  map-options
+                  v-model="rule.band_ids"
+                  :options="bandEditBandOptions"
+                  :label="$t('events.band_rule_bands')"
+                  :hint="$t('events.band_rule_bands_hint')"
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section avatar>
+                        <span
+                          class="band-swatch"
+                          :style="bandSwatchStyle(scope.opt.colour)"
+                        ></span>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.label }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      dense
+                      square
+                      removable
+                      :tabindex="scope.tabindex"
+                      :style="{
+                        borderLeft:
+                          '4px solid ' + (scope.opt.colour || '#ffffff')
+                      }"
+                      @remove="scope.removeAtIndex(scope.index)"
+                    >
+                      {{ scope.opt.label }}
+                    </q-chip>
+                  </template>
+                </q-select>
+
+                <q-select
+                  class="q-mt-sm"
+                  filled
+                  dense
+                  multiple
+                  use-chips
+                  emit-value
+                  map-options
+                  v-model="rule.ticket_type_ids"
+                  :options="bandEditTypeOptions"
+                  :label="$t('events.band_rule_types')"
+                  :hint="$t('events.band_rule_types_hint')"
+                ></q-select>
+
+                <div class="row q-col-gutter-sm q-mt-xs">
+                  <div class="col-12 col-sm-6">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="rule.promo_prefixes"
+                      :label="$t('events.band_rule_prefixes')"
+                      :hint="$t('events.band_rule_prefixes_hint')"
+                    ></q-input>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <q-input
+                      filled
+                      dense
+                      v-model.trim="rule.promo_codes"
+                      :label="$t('events.band_rule_codes')"
+                      :hint="$t('events.band_rule_codes_hint')"
+                    ></q-input>
+                  </div>
+                </div>
+
+                <div class="row q-col-gutter-sm q-mt-xs items-start">
+                  <div class="col-12 col-sm-4">
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="rule.day"
+                      :options="bandEditDayOptions"
+                      :label="$t('events.band_rule_day')"
+                    ></q-select>
+                  </div>
+                  <div class="col-12 col-sm-8">
+                    <div
+                      class="text-caption text-grey-6"
+                      v-text="$t('events.band_rule_per')"
+                    ></div>
+                    <q-btn-toggle
+                      v-model="rule.per"
+                      :options="bandEditPerOptions"
+                      toggle-color="primary"
+                      spread
+                      no-caps
+                      size="sm"
+                      unelevated
+                    ></q-btn-toggle>
+                  </div>
+                </div>
+                <div
+                  class="text-caption text-grey-6 q-mt-xs"
+                  v-text="$t('events.band_rule_condition_hint')"
+                ></div>
+              </div>
+            </template>
+          </q-card-section>
+
+          <div
+            v-if="bandEditDialog.error"
+            class="text-caption text-negative q-mt-sm"
+            v-text="bandEditDialog.error"
+          ></div>
+
+          <q-card-actions align="right">
+            <q-btn
+              flat
+              color="grey"
+              v-text="$t('cancel')"
+              @click="bandEditDialog.show = false"
+            ></q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              icon="save"
+              :label="$t('events.save')"
+              :loading="bandEditDialog.saving"
+              @click="saveBands"
+            ></q-btn>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
           </q-dialog>
         </q-card-section>
       </q-card>
@@ -1237,6 +1558,20 @@
 </template>
 <style>
 .text-strikethrough {
+.band-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  flex: 0 0 auto;
+}
+
+.band-rule {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 6px;
+}
+
   text-decoration: line-through;
 }
 </style>

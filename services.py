@@ -26,6 +26,7 @@ from .crud import (
     create_ticket,
     get_basket,
     get_basket_tickets,
+    get_event_tickets,
     get_event,
     get_event_tickets,
     get_events,
@@ -1969,8 +1970,19 @@ async def seed_bands(event: Event, *, force: bool = False) -> Event:
 _WEEKDAY_DAY = {4: "fri", 5: "sat"}
 
 
-def _ticket_band_code(ticket: Ticket) -> str:
-    return (ticket.extra.applied_promo_code or "").strip().upper()
+class CheckinError(Exception):
+    """A scan the door can fix (bad override, nothing chosen) -- not a 404."""
+
+
+def _ticket_band_codes(ticket: Ticket) -> list[str]:
+    """Every offer code on the ticket, upper-cased.
+
+    `applied_promo_code` is a comma-joined string when the checkout applied
+    more than one code, and treating that as a single code silently loses BOTH
+    role bands (a VOLUNTEER+SPK ticket matched neither rule).
+    """
+    raw = ticket.extra.applied_promo_code or ""
+    return [part.strip().upper() for part in raw.split(",") if part.strip()]
 
 
 def _band_rule_matches(rule, ticket: Ticket, day: str | None) -> bool:
@@ -1979,12 +1991,16 @@ def _band_rule_matches(rule, ticket: Ticket, day: str | None) -> bool:
         return False
     if rule.day and rule.day != day:
         return False
-    code = _ticket_band_code(ticket)
+    codes = _ticket_band_codes(ticket)
     if rule.promo_prefixes and not any(
-        code.startswith(p.strip().upper()) for p in rule.promo_prefixes
+        code.startswith(p.strip().upper())
+        for code in codes
+        for p in rule.promo_prefixes
     ):
         return False
-    if rule.promo_codes and code not in {c.strip().upper() for c in rule.promo_codes}:
+    if rule.promo_codes and not (
+        set(codes) & {c.strip().upper() for c in rule.promo_codes}
+    ):
         return False
     return True
 
@@ -2018,7 +2034,7 @@ def resolve_bands(
                 by_id[b].name for b in rule.band_ids if b in by_id
             )
             if names:
-                note = f"{names} already issued to the other ticket on this order."
+                note = f"{names} already issued (one per code)."
             continue
         for bid in rule.band_ids:
             band = by_id.get(bid)
@@ -2026,6 +2042,13 @@ def resolve_bands(
                 out.append(band)
                 seen.add(bid)
     return out, note
+
+
+# Two phones can scan one order at the same moment (two doors, or staff
+# retrying). The role-band decision is read-then-write, so without a lock both
+# tickets of one speaker order hand out a Yellow. Serialise the COMMITTING path
+# only: reads stay unlocked so the queue never waits on a scan.
+_CHECKIN_LOCK = asyncio.Lock()
 
 
 async def checkin_view(
@@ -2040,6 +2063,19 @@ async def checkin_view(
     Idempotent by design: once a band is issued there is no re-check-in, so a
     second scan reports the existing state and changes nothing.
     """
+    if not commit:
+        return await _checkin_impl(ticket_id, token, bands, commit=False)
+    async with _CHECKIN_LOCK:
+        return await _checkin_impl(ticket_id, token, bands, commit=True)
+
+
+async def _checkin_impl(
+    ticket_id: str,
+    token: str = "",
+    bands: list[str] | None = None,
+    *,
+    commit: bool = False,
+) -> CheckinView:
     ticket = await get_ticket(ticket_id)
     if not ticket:
         raise ValueError("Ticket not found.")
@@ -2053,22 +2089,49 @@ async def checkin_view(
     if ticket.extra.deactivated:
         raise ValueError("Ticket has been deactivated.")
 
+    # Who shares a role band this ticket might otherwise claim?
     siblings: list[Ticket] = []
+    seen = {ticket.id}
     if ticket.basket_id:
-        siblings = [
-            t for t in await get_basket_tickets(ticket.basket_id) if t.id != ticket.id
-        ]
+        for t in await get_basket_tickets(ticket.basket_id):
+            if t.id not in seen:
+                siblings.append(t)
+                seen.add(t.id)
+    # A speaker can redeem their code twice and end up with two separate orders,
+    # where the basket no longer means "same person". Same code + same buyer does.
+    codes = set(_ticket_band_codes(ticket))
+    buyer = (ticket.email or "").strip().lower()
+    if codes and buyer:
+        for t in await get_event_tickets(ticket.event):
+            if t.id in seen:
+                continue
+            if (t.email or "").strip().lower() == buyer and codes & set(
+                _ticket_band_codes(t)
+            ):
+                siblings.append(t)
+                seen.add(t.id)
 
     suggested, note = resolve_bands(event, ticket, siblings)
-    if commit and not ticket.registered:
+    if commit:
+        by_band = {b.id: b for b in event.extra.bands}
+        if bands is not None:
+            if not bands:
+                raise CheckinError("Choose at least one band to hand over.")
+            unknown = [b for b in bands if b not in by_band]
+            if unknown:
+                raise CheckinError(f"Unknown band: {', '.join(unknown)}.")
         ids = bands if bands is not None else [b.id for b in suggested]
-        ticket.registered = True
-        ticket.reg_timestamp = datetime.now(timezone.utc)
-        ticket.extra.bands_issued = list(dict.fromkeys(ids))
-        await update_ticket(ticket)
+        # A ticket the legacy register endpoint already marked as arrived has no
+        # record of what was handed over, so allow that FIRST record; after that
+        # the hand-over is final (no re-check-in).
+        if not ticket.extra.bands_issued:
+            ticket.registered = True
+            ticket.reg_timestamp = ticket.reg_timestamp or datetime.now(timezone.utc)
+            ticket.extra.bands_issued = list(dict.fromkeys(ids))
+            await update_ticket(ticket)
 
     by_id = {b.id: b for b in event.extra.bands}
-    if ticket.registered and ticket.extra.bands_issued:
+    if ticket.extra.bands_issued:
         shown = [by_id[b] for b in ticket.extra.bands_issued if b in by_id]
     else:
         shown = suggested
@@ -2077,7 +2140,7 @@ async def checkin_view(
         await get_ticket_type(ticket.ticket_type_id) if ticket.ticket_type_id else None
     )
     return CheckinView(
-        ticket=ticket,
+        ticket=ticket.model_copy(update={"email": ""}),
         event_name=event.name,
         ticket_type_name=ticket_type.name if ticket_type else "",
         bands=[CheckinBand(id=b.id, name=b.name, label=b.label, colour=b.colour) for b in shown],
