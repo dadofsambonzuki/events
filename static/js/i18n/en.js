@@ -261,6 +261,23 @@ window.i18n.global.mergeLocaleMessage('en', {
     registration: 'Registration',
 
     scan_ticket: 'Scan ticket',
+    checkin_valid: 'Valid — check in',
+    checkin_already: 'Already checked in',
+    checkin_confirm: 'Confirm & hand over',
+    checkin_bands: 'Bands…',
+    checkin_give: 'Give',
+    checkin_save: 'Save bands',
+    checkin_scanned: 'Scanned',
+    checkin_bad_token: 'Scanner link is not valid — ask for a fresh one.',
+    checkin_override: 'Bands to hand over',
+    checkin_at: 'Checked in',
+    checkin_setup: 'Check-in scanner',
+    checkin_setup_hint: 'Open this link on the door staff’s phone. The band list and link are created on first use; ‘New link’ revokes the old one.',
+    checkin_setup_counts: '{bands} bands, {rules} rules',
+    checkin_rotate: 'New link',
+    checkin_copy_link: 'Copy link',
+    checkin_link_copied: 'Scanner link copied',
+    checkin_no_bands: 'No band rule matches this ticket — choose the bands below.',
 
     registered_success: 'Registered',
 

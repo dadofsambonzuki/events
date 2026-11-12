@@ -48,9 +48,13 @@ from .crud import (
     get_events,
 )
 from .models import (
+    Band,
     BasketItem,
     BasketResponse,
     BasketTotals,
+    CheckinBand,
+    CheckinRequest,
+    CheckinView,
     CreateBasket,
     CreateEvent,
     CreateTicket,
@@ -65,6 +69,8 @@ from .models import (
 )
 from .services import (
     backfill_paid_values,
+    checkin_view,
+    seed_bands,
     calculate_basket_total,
     create_basket_with_charge,
     get_satspay_charge,
@@ -784,6 +790,73 @@ async def api_ticket_deactivate(
     if ticket.wallet != wallet.wallet.id:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your ticket.")
     return await toggle_ticket_deactivation(ticket)
+
+
+@events_api_router.get("/checkin/{ticket_id}", response_model=CheckinView)
+async def api_checkin_view(ticket_id: str, k: str = "") -> CheckinView:
+    """What the door should hand over for this ticket (read-only)."""
+    try:
+        return await checkin_view(ticket_id, k)
+    except PermissionError as exc:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
+
+
+@events_api_router.post("/checkin/{ticket_id}", response_model=CheckinView)
+async def api_checkin(ticket_id: str, data: CheckinRequest) -> CheckinView:
+    """Record the hand-over. Idempotent: no band means no re-check-in."""
+    try:
+        return await checkin_view(ticket_id, data.k, data.bands, commit=True)
+    except PermissionError as exc:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
+
+
+@events_api_router.post("/events/{event_id}/scanner")
+async def api_event_scanner(
+    event_id: str,
+    rotate: bool = False,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> dict:
+    """Seed the check-in setup and return the scanner link for this event.
+
+    Band config and the token are created on first use, so enabling check-in is
+    one click rather than a migration; `rotate` invalidates a leaked link.
+    """
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    if event.wallet != wallet.wallet.id:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your event.")
+    if rotate:
+        event.extra.scanner_token = None
+    event = await seed_bands(event)
+    return {
+        "token": event.extra.scanner_token,
+        "bands": len(event.extra.bands),
+        "rules": len(event.extra.band_rules),
+    }
+
+
+@events_api_router.post("/maintenance/seed-bands/{event_id}")
+async def api_seed_bands(
+    event_id: str, force: bool = False, wallet: WalletTypeInfo = Depends(require_admin_key)
+) -> dict:
+    """Seed the band list, rules and scanner token for an event."""
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    if event.wallet != wallet.wallet.id:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your event.")
+    event = await seed_bands(event, force=force)
+    return {"bands": len(event.extra.bands), "rules": len(event.extra.band_rules),
+            "scanner_token": event.extra.scanner_token}
 
 
 @events_api_router.put("/tickets/register/{ticket_id}")

@@ -227,8 +227,45 @@ class TicketType(BaseModel):
     extra: dict = Field(default_factory=dict)
 
 
+class Band(BaseModel):
+    """A physical wristband staff hand over at the door."""
+
+    id: str
+    name: str
+    # What the band is for, printed under the colour name ("Weekend — all
+    # variants", "Speaker", "Sat 1 Day").
+    label: str = ""
+    colour: str = "#ffffff"
+
+
+class BandRule(BaseModel):
+    """One rule mapping scanned tickets to bands, evaluated in order.
+
+    ``per`` is the axis the door actually cares about: an ACCESS band is one per
+    TICKET, a ROLE band (speaker, crew) is one per REDEMPTION — a speaker's code
+    buys two tickets and only one of the pair is the speaker, so the role band
+    must not multiply with quantity.
+
+    Conditions are ANDed; an absent condition does not constrain. ``day`` is for
+    one-day passes, whose colour depends on the day they arrive rather than on
+    anything stored on the ticket.
+    """
+
+    band_ids: list[str]
+    per: str = "ticket"  # 'ticket' | 'redemption'
+    ticket_type_ids: list[str] | None = None
+    promo_prefixes: list[str] | None = None
+    promo_codes: list[str] | None = None
+    day: str | None = None  # 'fri' | 'sat'
+
+
 class EventExtra(BaseModel):
     promo_codes: list[PromoCode] = Field(default_factory=list)
+    # Check-in: the bands this event hands out, the rules that pick them, and
+    # the token the (public) scanner page must present.
+    bands: list[Band] = Field(default_factory=list)
+    band_rules: list[BandRule] = Field(default_factory=list)
+    scanner_token: str | None = None
     conditional: bool = False
     min_tickets: int = 1
     email_notifications: bool = False
@@ -316,6 +353,11 @@ class TicketExtra(BaseModel):
     upgraded_to: str | None = None
     # Set on a ticket created by a move upgrade.
     upgraded_from: str | None = None
+    # Check-in: the bands actually handed over (the SUGGESTION is resolved live
+    # from the event rules, so fixing a rule applies to tickets already sold),
+    # and a free-text instruction for the door.
+    bands_issued: list[str] = Field(default_factory=list)
+    checkin_text: str = ""
 
 
 class CreateTicket(BaseModel):
@@ -372,6 +414,36 @@ class PublicTicket(BaseModel):
     deactivated: bool = False
     time: datetime
     reg_timestamp: datetime | None = None
+
+
+class CheckinBand(BaseModel):
+    id: str
+    name: str
+    label: str = ""
+    colour: str = ""
+
+
+class CheckinView(BaseModel):
+    """What the door sees for one scanned ticket."""
+
+    ticket: Ticket
+    event_name: str = ""
+    ticket_type_name: str = ""
+    bands: list[CheckinBand] = Field(default_factory=list)
+    # Every band this event defines, for the override sheet.
+    all_bands: list[CheckinBand] = Field(default_factory=list)
+    already_checked_in: bool = False
+    checked_in_at: datetime | None = None
+    checkin_text: str = ""
+    # e.g. the role band already went to the other ticket on this order.
+    note: str = ""
+    token_ok: bool = True
+
+
+class CheckinRequest(BaseModel):
+    k: str = ""
+    # Omit to record exactly the bands the card suggested (the normal path).
+    bands: list[str] | None = None
 
 
 class TicketPaymentRequest(BaseModel):

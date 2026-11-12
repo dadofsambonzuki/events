@@ -78,10 +78,8 @@
                     size="xs"
                     icon="how_to_reg"
                     :color="$q.dark.isActive ? 'grey-7' : 'grey-5'"
-                    type="a"
-                    :href="'/events/register/' + props.row.id"
-                    target="_blank"
                     class="q-ml-xs"
+                    @click="openScanner(props.row.id)"
                   ></q-btn>
                 </q-td>
                 <q-td auto-width>
@@ -248,6 +246,24 @@
               </q-tr>
             </template>
           </q-table>
+
+          <q-dialog v-model="scannerDialog.show">
+            <q-card style="width: 460px; max-width: 92vw">
+              <q-card-section>
+                <div class="text-subtitle1 text-weight-medium" v-text="$t('events.checkin_setup')"></div>
+                <div class="text-caption text-grey-6 q-mt-xs" v-text="$t('events.checkin_setup_hint')"></div>
+              </q-card-section>
+              <q-card-section v-if="scannerDialog.link">
+                <q-input filled dense readonly :model-value="scannerDialog.link" @focus="$event.target.select()"></q-input>
+                <div class="text-caption text-grey-6 q-mt-sm" v-text="$t('events.checkin_setup_counts', {bands: scannerDialog.bands, rules: scannerDialog.rules})"></div>
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn flat color="grey" v-text="$t('cancel')" @click="scannerDialog.show = false"></q-btn>
+                <q-btn flat color="negative" v-text="$t('events.checkin_rotate')" :loading="scannerDialog.loading" @click="openScanner(scannerDialog.eventId, true)"></q-btn>
+                <q-btn unelevated color="primary" icon="content_copy" v-text="$t('events.checkin_copy_link')" @click="copyScannerLink"></q-btn>
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
         </q-card-section>
       </q-card>
 

@@ -256,6 +256,23 @@ window.i18n.global.mergeLocaleMessage('es', {
     registration: 'Registro',
 
     scan_ticket: 'Escanear entrada',
+    checkin_valid: 'Válida — registrar',
+    checkin_already: 'Ya registrada',
+    checkin_confirm: 'Confirmar y entregar',
+    checkin_bands: 'Bandas…',
+    checkin_give: 'Entregar',
+    checkin_save: 'Guardar bandas',
+    checkin_scanned: 'Escaneadas',
+    checkin_bad_token: 'El enlace del escáner no es válido: pide uno nuevo.',
+    checkin_override: 'Bandas a entregar',
+    checkin_at: 'Registrada',
+    checkin_setup: 'Escáner de acceso',
+    checkin_setup_hint: 'Abre este enlace en el móvil del personal de puerta. La lista de bandas y el enlace se crean al primer uso; «Nuevo enlace» revoca el anterior.',
+    checkin_setup_counts: '{bands} bandas, {rules} reglas',
+    checkin_rotate: 'Nuevo enlace',
+    checkin_copy_link: 'Copiar enlace',
+    checkin_link_copied: 'Enlace del escáner copiado',
+    checkin_no_bands: 'Ninguna regla coincide con esta entrada: elige las bandas abajo.',
 
     registered_success: 'Registrado',
 

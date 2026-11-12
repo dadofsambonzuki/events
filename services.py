@@ -40,10 +40,14 @@ from .crud import (
     update_ticket_type,
 )
 from .models import (
+    Band,
+    BandRule,
     Basket,
     BasketDiscount,
     BasketGrant,
     BasketTotals,
+    CheckinBand,
+    CheckinView,
     CreateBasket,
     Event,
     EventExtra,
@@ -53,6 +57,7 @@ from .models import (
     PromoRequirement,
     PromoSource,
     Ticket,
+    TicketType,
     TicketResendResult,
     TicketType,
 )
@@ -1889,6 +1894,200 @@ async def _increment_promo_uses_from_basket(
         modified = True
     if modified:
         await update_event(event)
+
+
+# ---------------------------------------------------------------------------
+# Check-in: which band to hand over
+# ---------------------------------------------------------------------------
+# The house scheme. Seeded onto an event once, then editable: the ids are what
+# the rules reference, so renaming a band's label never breaks a rule.
+DEFAULT_BANDS = [
+    Band(id="black", name="Black", label="Crew", colour="#1f2430"),
+    Band(id="yellow", name="Yellow", label="Speaker", colour="#ffd60a"),
+    Band(id="purple", name="Purple", label="Fri 1 Day", colour="#7c4dff"),
+    Band(id="orange", name="Orange", label="Sat 1 Day", colour="#ff8a00"),
+    Band(id="green", name="Green", label="Freedom Fest", colour="#15803d"),
+    Band(id="red", name="Red", label="NME", colour="#dc2626"),
+    Band(id="white", name="White", label="Weekend — all variants", colour="#f4f4f5"),
+]
+
+
+def default_band_rules(event: Event, ticket_types: list[TicketType]) -> list[BandRule]:
+    """The house scheme, expressed against this event's own ticket types."""
+
+    def matching(*needles: str) -> list[str]:
+        return [
+            t.id
+            for t in ticket_types
+            if any(n in (t.name or "").lower() for n in needles)
+        ]
+
+    name = (event.name or "").lower()
+    every = [t.id for t in ticket_types]
+    rules: list[BandRule] = []
+    if "expo" in name:
+        rules.append(BandRule(band_ids=["white", "yellow"], ticket_type_ids=every))
+    elif "freedom" in name:
+        rules.append(BandRule(band_ids=["green"], ticket_type_ids=every))
+    elif "new music economy" in name:
+        rules.append(BandRule(band_ids=["red"], ticket_type_ids=every))
+    else:
+        weekend = matching("weekend")
+        one_day = matching("one day")
+        nme = matching("new music economy", "npubdub")
+        if weekend:
+            rules.append(BandRule(band_ids=["white"], ticket_type_ids=weekend))
+        if one_day:
+            # A one-day pass takes the colour of the day it is used.
+            rules.append(BandRule(band_ids=["purple"], ticket_type_ids=one_day, day="fri"))
+            rules.append(BandRule(band_ids=["orange"], ticket_type_ids=one_day, day="sat"))
+        if nme:
+            rules.append(BandRule(band_ids=["red"], ticket_type_ids=nme))
+    # Role bands: one per CODE, never one per ticket.
+    rules.append(
+        BandRule(band_ids=["yellow"], per="redemption", promo_prefixes=["SPK-"])
+    )
+    rules.append(BandRule(band_ids=["black"], per="redemption", promo_codes=["CREW"]))
+    return rules
+
+
+async def seed_bands(event: Event, *, force: bool = False) -> Event:
+    """Fill in bands, rules and the scanner token. Idempotent."""
+    if force or not event.extra.bands:
+        event.extra.bands = [Band(**b.dict()) for b in DEFAULT_BANDS]
+    if force or not event.extra.band_rules:
+        event.extra.band_rules = default_band_rules(
+            event, await get_ticket_types(event.id)
+        )
+    if not event.extra.scanner_token:
+        event.extra.scanner_token = urlsafe_short_hash()
+    return await update_event(event)
+# One-day passes take their colour from the DAY they arrive (the ticket type
+# does not carry a day), so the resolver needs the check-in weekday.
+_WEEKDAY_DAY = {4: "fri", 5: "sat"}
+
+
+def _ticket_band_code(ticket: Ticket) -> str:
+    return (ticket.extra.applied_promo_code or "").strip().upper()
+
+
+def _band_rule_matches(rule, ticket: Ticket, day: str | None) -> bool:
+    """Whether a band rule applies to this ticket at this check-in."""
+    if rule.ticket_type_ids and ticket.ticket_type_id not in rule.ticket_type_ids:
+        return False
+    if rule.day and rule.day != day:
+        return False
+    code = _ticket_band_code(ticket)
+    if rule.promo_prefixes and not any(
+        code.startswith(p.strip().upper()) for p in rule.promo_prefixes
+    ):
+        return False
+    if rule.promo_codes and code not in {c.strip().upper() for c in rule.promo_codes}:
+        return False
+    return True
+
+
+def resolve_bands(
+    event: Event,
+    ticket: Ticket,
+    siblings: list[Ticket] | None = None,
+    when: datetime | None = None,
+) -> tuple[list[Band], str]:
+    """The bands to hand over for this ticket, plus a note for the door.
+
+    Resolution is LIVE rather than snapshotted on the ticket: a rule fix has to
+    apply to tickets already sold. What was actually handed over is recorded on
+    the ticket when the staff member confirms, which is also what tells a second
+    scan that the role band has already gone to the other person on the order.
+    """
+    day = _WEEKDAY_DAY.get((when or datetime.now(timezone.utc)).weekday())
+    by_id = {b.id: b for b in event.extra.bands}
+    issued_elsewhere = {
+        bid for s in (siblings or []) for bid in (s.extra.bands_issued or [])
+    }
+    out: list[Band] = []
+    note = ""
+    seen: set[str] = set()
+    for rule in event.extra.band_rules:
+        if not _band_rule_matches(rule, ticket, day):
+            continue
+        if rule.per == "redemption" and issued_elsewhere.intersection(rule.band_ids):
+            names = ", ".join(
+                by_id[b].name for b in rule.band_ids if b in by_id
+            )
+            if names:
+                note = f"{names} already issued to the other ticket on this order."
+            continue
+        for bid in rule.band_ids:
+            band = by_id.get(bid)
+            if band and bid not in seen:
+                out.append(band)
+                seen.add(bid)
+    return out, note
+
+
+async def checkin_view(
+    ticket_id: str,
+    token: str = "",
+    bands: list[str] | None = None,
+    *,
+    commit: bool = False,
+) -> CheckinView:
+    """What the door sees for a scan; ``commit`` records the hand-over.
+
+    Idempotent by design: once a band is issued there is no re-check-in, so a
+    second scan reports the existing state and changes nothing.
+    """
+    ticket = await get_ticket(ticket_id)
+    if not ticket:
+        raise ValueError("Ticket not found.")
+    event = await get_event(ticket.event)
+    if not event:
+        raise ValueError("Event not found.")
+    if not event.extra.scanner_token or token != event.extra.scanner_token:
+        raise PermissionError("Invalid scanner link.")
+    if not ticket.paid:
+        raise ValueError("Ticket not paid for.")
+    if ticket.extra.deactivated:
+        raise ValueError("Ticket has been deactivated.")
+
+    siblings: list[Ticket] = []
+    if ticket.basket_id:
+        siblings = [
+            t for t in await get_basket_tickets(ticket.basket_id) if t.id != ticket.id
+        ]
+
+    suggested, note = resolve_bands(event, ticket, siblings)
+    if commit and not ticket.registered:
+        ids = bands if bands is not None else [b.id for b in suggested]
+        ticket.registered = True
+        ticket.reg_timestamp = datetime.now(timezone.utc)
+        ticket.extra.bands_issued = list(dict.fromkeys(ids))
+        await update_ticket(ticket)
+
+    by_id = {b.id: b for b in event.extra.bands}
+    if ticket.registered and ticket.extra.bands_issued:
+        shown = [by_id[b] for b in ticket.extra.bands_issued if b in by_id]
+    else:
+        shown = suggested
+
+    ticket_type = (
+        await get_ticket_type(ticket.ticket_type_id) if ticket.ticket_type_id else None
+    )
+    return CheckinView(
+        ticket=ticket,
+        event_name=event.name,
+        ticket_type_name=ticket_type.name if ticket_type else "",
+        bands=[CheckinBand(id=b.id, name=b.name, label=b.label, colour=b.colour) for b in shown],
+        all_bands=[
+            CheckinBand(id=b.id, name=b.name, label=b.label, colour=b.colour)
+            for b in event.extra.bands
+        ],
+        already_checked_in=bool(ticket.registered),
+        checked_in_at=ticket.reg_timestamp,
+        checkin_text=ticket.extra.checkin_text or "",
+        note=note,
+    )
 
 
 async def toggle_ticket_deactivation(ticket: Ticket) -> Ticket:

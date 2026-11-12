@@ -257,6 +257,23 @@ window.i18n.global.mergeLocaleMessage('de', {
     registration: 'Registrierung',
 
     scan_ticket: 'Ticket scannen',
+    checkin_valid: 'Gültig — einchecken',
+    checkin_already: 'Bereits eingecheckt',
+    checkin_confirm: 'Bestätigen & aushändigen',
+    checkin_bands: 'Bänder…',
+    checkin_give: 'Aushändigen',
+    checkin_save: 'Bänder speichern',
+    checkin_scanned: 'Gescannt',
+    checkin_bad_token: 'Scanner-Link ist ungültig – bitte einen neuen anfordern.',
+    checkin_override: 'Auszuhändigende Bänder',
+    checkin_at: 'Eingecheckt',
+    checkin_setup: 'Check-in-Scanner',
+    checkin_setup_hint: 'Diesen Link auf dem Handy des Türpersonals öffnen. Bandliste und Link entstehen beim ersten Aufruf; „Neuer Link“ macht den alten ungültig.',
+    checkin_setup_counts: '{bands} Bänder, {rules} Regeln',
+    checkin_rotate: 'Neuer Link',
+    checkin_copy_link: 'Link kopieren',
+    checkin_link_copied: 'Scanner-Link kopiert',
+    checkin_no_bands: 'Keine Bandregel passt zu diesem Ticket – Bänder unten wählen.',
 
     registered_success: 'Registriert',
 
