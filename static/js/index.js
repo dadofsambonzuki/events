@@ -281,11 +281,22 @@ active: true,
       // link the door staff scan with. Uses the caller's admin key, so no
       // credential ever leaves the session.
       this.scannerDialog.eventId = eventId
+      const wallet = this.bandEditWallet(eventId)
+      if (!wallet) {
+        // Every admin call carries the key explicitly: LNbits installs no
+        // interceptor, so omitting it is a 401 'No Api Key provided'.
+        Quasar.Notify.create({
+          message: this.$t('events.band_save_failed'),
+          type: 'negative'
+        })
+        return
+      }
       this.scannerDialog.loading = true
       try {
         const {data} = await LNbits.api.request(
           'POST',
-          `/events/api/v1/events/${eventId}/scanner${rotate ? '?rotate=true' : ''}`
+          `/events/api/v1/events/${eventId}/scanner${rotate ? '?rotate=true' : ''}`,
+          wallet.adminkey
         )
         this.scannerDialog.bands = data.bands
         this.scannerDialog.rules = data.rules
