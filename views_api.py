@@ -70,6 +70,7 @@ from .models import (
 )
 from .services import (
     backfill_paid_values,
+    WEEKDAY_NAMES,
     CheckinError,
     checkin_view,
     seed_bands,
@@ -861,9 +862,10 @@ async def api_update_bands(
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail=f"Unknown band in rule: {', '.join(unknown)}.",
             )
-        if rule.day not in (None, "fri", "sat"):
+        if rule.day and rule.day not in WEEKDAY_NAMES:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, detail="Day must be fri or sat."
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Day must be one of " + ", ".join(WEEKDAY_NAMES) + ".",
             )
         if rule.per not in ("ticket", "redemption"):
             raise HTTPException(

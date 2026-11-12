@@ -1967,7 +1967,16 @@ async def seed_bands(event: Event, *, force: bool = False) -> Event:
     return await update_event(event)
 # One-day passes take their colour from the DAY they arrive (the ticket type
 # does not carry a day), so the resolver needs the check-in weekday.
-_WEEKDAY_DAY = {4: "fri", 5: "sat"}
+# Any weekday can be named -- the door's day is simply the local day of the scan.
+# The CLOCK is the server's own timezone (`astimezone()`), not a hardcoded UTC:
+# set the host to the venue's zone (timedatectl set-timezone Europe/London) and
+# every band follows, including an after-midnight queue.
+WEEKDAY_NAMES = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def _checkin_day(when: datetime | None = None) -> str:
+    moment = when or datetime.now().astimezone()
+    return WEEKDAY_NAMES[moment.weekday()]
 
 
 class CheckinError(Exception):
@@ -2018,7 +2027,7 @@ def resolve_bands(
     the ticket when the staff member confirms, which is also what tells a second
     scan that the role band has already gone to the other person on the order.
     """
-    day = _WEEKDAY_DAY.get((when or datetime.now(timezone.utc)).weekday())
+    day = _checkin_day(when)
     by_id = {b.id: b for b in event.extra.bands}
     issued_elsewhere = {
         bid for s in (siblings or []) for bid in (s.extra.bands_issued or [])

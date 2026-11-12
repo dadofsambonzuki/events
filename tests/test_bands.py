@@ -348,3 +348,29 @@ def test_concurrent_scans_issue_one_role_band():
         yellows = sum(1 for t in stored if "yellow" in (t.extra.bands_issued or []))
         assert yellows == 1, f"yellow issued {yellows}x"
     asyncio.run(run())
+
+
+def test_every_weekday_can_be_named():
+    """The door is not limited to Fri/Sat: any scan day can carry a rule."""
+    async def run():
+        ev = await make_event()
+        thu = datetime(2026, 11, 19, 18, 0, tzinfo=timezone.utc)
+        sun = datetime(2026, 11, 22, 18, 0, tzinfo=timezone.utc)
+        assert S._checkin_day(thu) == "thu" and S._checkin_day(sun) == "sun"
+
+        day_pass = await make_ticket("J1", ONEDAY)
+        assert S.resolve_bands(ev, day_pass, [], thu)[0] == [], "no Thursday rule yet"
+        ev.extra.band_rules.append(
+            M.BandRule(band_ids=["purple"], ticket_type_ids=[ONEDAY], day="thu")
+        )
+        assert [b.id for b in S.resolve_bands(ev, day_pass, [], thu)[0]] == ["purple"]
+        ev.extra.band_rules.append(
+            M.BandRule(band_ids=["white"], ticket_type_ids=[ONEDAY], day="sun")
+        )
+        assert [b.id for b in S.resolve_bands(ev, day_pass, [], sun)[0]] == ["white"]
+    asyncio.run(run())
+
+
+def test_the_default_clock_is_the_servers_local_time():
+    """No hardcoded UTC: an unqualified scan uses astimezone()."""
+    assert S._checkin_day() == S.WEEKDAY_NAMES[datetime.now().astimezone().weekday()]

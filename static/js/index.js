@@ -56,8 +56,13 @@ window.PageEvents = {
       // treats null as "nothing selected" and would show the placeholder.
       return [
         {label: this.$t('events.band_rule_day_any'), value: ''},
+        {label: this.$t('events.band_rule_day_mon'), value: 'mon'},
+        {label: this.$t('events.band_rule_day_tue'), value: 'tue'},
+        {label: this.$t('events.band_rule_day_wed'), value: 'wed'},
+        {label: this.$t('events.band_rule_day_thu'), value: 'thu'},
         {label: this.$t('events.band_rule_day_fri'), value: 'fri'},
-        {label: this.$t('events.band_rule_day_sat'), value: 'sat'}
+        {label: this.$t('events.band_rule_day_sat'), value: 'sat'},
+        {label: this.$t('events.band_rule_day_sun'), value: 'sun'}
       ]
     },
     bandEditPerOptions() {
