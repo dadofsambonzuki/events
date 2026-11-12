@@ -440,6 +440,13 @@ class CheckinView(BaseModel):
     token_ok: bool = True
 
 
+class BandSetup(BaseModel):
+    """The event's whole band scheme, saved in one go from the admin UI."""
+
+    bands: list[Band] = []
+    rules: list[BandRule] = []
+
+
 class CheckinRequest(BaseModel):
     k: str = ""
     # Omit to record exactly the bands the card suggested (the normal path).

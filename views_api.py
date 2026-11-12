@@ -49,6 +49,7 @@ from .crud import (
 )
 from .models import (
     Band,
+    BandSetup,
     BasketItem,
     BasketResponse,
     BasketTotals,
@@ -812,6 +813,75 @@ async def api_checkin(ticket_id: str, data: CheckinRequest) -> CheckinView:
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(exc))
+
+
+@events_api_router.put("/events/{event_id}/bands")
+async def api_update_bands(
+    event_id: str,
+    data: BandSetup,
+    wallet: WalletTypeInfo = Depends(require_admin_key),
+) -> dict:
+    """Replace the band scheme. Validated here, not in the browser."""
+    event = await get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Event does not exist."
+        )
+    if event.wallet != wallet.wallet.id:
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not your event.")
+
+    ids = [b.id.strip().lower() for b in data.bands]
+    if len(set(ids)) != len(ids):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Band ids must be unique."
+        )
+    for band in data.bands:
+        if not band.id.strip() or not band.name.strip():
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Every band needs an id and a name.",
+            )
+        band.id = band.id.strip().lower()
+
+    types = {t.id for t in await get_ticket_types(event_id)}
+    known = set(ids)
+    for rule in data.rules:
+        if not rule.band_ids:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="A rule needs a band."
+            )
+        unknown = [b for b in rule.band_ids if b not in known]
+        if unknown:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown band in rule: {', '.join(unknown)}.",
+            )
+        if rule.day not in (None, "fri", "sat"):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Day must be fri or sat."
+            )
+        if rule.per not in ("ticket", "redemption"):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail="Per must be ticket or redemption."
+            )
+        if not (rule.ticket_type_ids or rule.promo_prefixes or rule.promo_codes):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="A rule needs a ticket type, a code or a code prefix.",
+            )
+        missing = [t for t in rule.ticket_type_ids if t not in types]
+        if missing:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail=f"Unknown ticket type in rule: {', '.join(missing)}.",
+            )
+
+    event.extra.bands = data.bands
+    event.extra.band_rules = data.rules
+    if not event.extra.scanner_token:
+        event.extra.scanner_token = urlsafe_short_hash()
+    await update_event_crud(event)
+    return {"bands": len(event.extra.bands), "rules": len(event.extra.band_rules)}
 
 
 @events_api_router.post("/events/{event_id}/scanner")

@@ -157,6 +157,9 @@ def test_house_rules_match_the_band_scheme():
         assert (["orange"], ["OD"], "sat", "ticket") in pairs
         assert (["red"], ["NME"], None, "ticket") in pairs
         assert (["yellow"], None, None, "redemption") in pairs
+        crew = [r for r in rules if r.band_ids == ["black"]]
+        assert crew and crew[0].per == "redemption"
+        assert crew[0].promo_codes == ["VOLUNTEER"], "crew buys with VOLUNTEER"
 
         expo = event.dict()
         expo["name"] = "Bitfest 2026 Expo"
@@ -165,4 +168,55 @@ def test_house_rules_match_the_band_scheme():
         assert (["white", "yellow"], ["WT", "OD", "NME"], None, "ticket") in [
             (r.band_ids, r.ticket_type_ids, r.day, r.per) for r in expo_rules
         ]
+    asyncio.run(run())
+
+
+def test_band_scheme_is_validated_server_side(monkeypatch):
+    from types import SimpleNamespace
+
+    from fastapi import HTTPException
+
+    from events import views_api as V
+
+    async def run():
+        ev = await make_event()
+
+        async def fake_event(_id):
+            return ev
+
+        async def fake_update(event):
+            return event
+
+        async def fake_types(_id):
+            return [SimpleNamespace(id=WEEKEND), SimpleNamespace(id=ONEDAY)]
+
+        monkeypatch.setattr(V, "get_event", fake_event)
+        monkeypatch.setattr(V, "update_event_crud", fake_update)
+        monkeypatch.setattr(V, "get_ticket_types", fake_types)
+        wallet = SimpleNamespace(wallet=SimpleNamespace(id="w1"))
+        band = M.Band(id="white", name="White", label="Weekend", colour="#fff")
+
+        async def expect_400(setup):
+            with pytest.raises(HTTPException) as info:
+                await V.api_update_bands("EVB", setup, wallet)
+            assert info.value.status_code == 400, info.value.detail
+
+        # a rule must name a band that exists
+        await expect_400(M.BandSetup(bands=[band], rules=[M.BandRule(band_ids=["nope"], ticket_type_ids=[WEEKEND])]))
+        # a rule must have a condition or it matches everything
+        await expect_400(M.BandSetup(bands=[band], rules=[M.BandRule(band_ids=["white"])]))
+        # ticket types must belong to this event
+        await expect_400(M.BandSetup(bands=[band], rules=[M.BandRule(band_ids=["white"], ticket_type_ids=["GHOST"])]))
+        # ids must be unique (they are the rule's keys)
+        await expect_400(M.BandSetup(bands=[band, band], rules=[]))
+
+        out = await V.api_update_bands(
+            "EVB",
+            M.BandSetup(bands=[band], rules=[M.BandRule(band_ids=["white"], ticket_type_ids=[WEEKEND])]),
+            wallet,
+        )
+        assert out == {"bands": 1, "rules": 1}
+        assert ev.extra.bands[0].id == "white"
+        assert ev.extra.scanner_token, "saving the scheme also mints the scanner token"
+
     asyncio.run(run())

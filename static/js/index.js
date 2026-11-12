@@ -1,35 +1,6 @@
 window.PageEvents = {
   template: '#page-events',
   computed: {
-    async openScanner(eventId, rotate = false) {
-      // Seeds the band config and the token on first use, then hands back the
-      // link the door staff scan with. Uses the caller's admin key, so no
-      // credential ever leaves the session.
-      this.scannerDialog.eventId = eventId
-      this.scannerDialog.loading = true
-      try {
-        const {data} = await LNbits.api.request(
-          'POST',
-          `/events/api/v1/events/${eventId}/scanner${rotate ? '?rotate=true' : ''}`
-        )
-        this.scannerDialog.bands = data.bands
-        this.scannerDialog.rules = data.rules
-        this.scannerDialog.link = `${window.location.origin}/events/register/${eventId}?k=${data.token}`
-        this.scannerDialog.show = true
-      } catch (error) {
-        LNbits.utils.notifyApiError(error)
-      } finally {
-        this.scannerDialog.loading = false
-      }
-    },
-    copyScannerLink() {
-      navigator.clipboard.writeText(this.scannerDialog.link).then(() => {
-        Quasar.Notify.create({
-          message: this.$t('events.checkin_link_copied'),
-          type: 'positive'
-        })
-      })
-    },
     promoCapSummary() {
       // max_tickets and max_uses are different axes and their PRODUCT is what
       // caps a code: say it out loud, because multiplying two numbers by eye is
@@ -264,6 +235,35 @@ active: true,
     }
   },
   methods: {
+    async openScanner(eventId, rotate = false) {
+      // Seeds the band config and the token on first use, then hands back the
+      // link the door staff scan with. Uses the caller's admin key, so no
+      // credential ever leaves the session.
+      this.scannerDialog.eventId = eventId
+      this.scannerDialog.loading = true
+      try {
+        const {data} = await LNbits.api.request(
+          'POST',
+          `/events/api/v1/events/${eventId}/scanner${rotate ? '?rotate=true' : ''}`
+        )
+        this.scannerDialog.bands = data.bands
+        this.scannerDialog.rules = data.rules
+        this.scannerDialog.link = `${window.location.origin}/events/register/${eventId}?k=${data.token}`
+        this.scannerDialog.show = true
+      } catch (error) {
+        LNbits.utils.notifyApiError(error)
+      } finally {
+        this.scannerDialog.loading = false
+      }
+    },
+    copyScannerLink() {
+      navigator.clipboard.writeText(this.scannerDialog.link).then(() => {
+        Quasar.Notify.create({
+          message: this.$t('events.checkin_link_copied'),
+          type: 'positive'
+        })
+      })
+    },
     formatISODate(value) {
       const d = new Date(value)
       if (isNaN(d)) return ''

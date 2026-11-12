@@ -1947,7 +1947,9 @@ def default_band_rules(event: Event, ticket_types: list[TicketType]) -> list[Ban
     rules.append(
         BandRule(band_ids=["yellow"], per="redemption", promo_prefixes=["SPK-"])
     )
-    rules.append(BandRule(band_ids=["black"], per="redemption", promo_codes=["CREW"]))
+    rules.append(
+        BandRule(band_ids=["black"], per="redemption", promo_codes=["VOLUNTEER"])
+    )
     return rules
 
 
