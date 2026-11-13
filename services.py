@@ -881,6 +881,11 @@ async def _resolve_ticket_rules(
     pending: list[PromoRequirement] = []
     rejections: list[PromoRejection] = []
     rejected: set[str] = set()
+    # One offer may be spread over several rules (a tier ladder sharing a code),
+    # and each one that wants a ticket used to append its OWN requirement. The
+    # checkout renders one line per entry, so a buyer who typed the code without
+    # a ticket saw the same sentence once for every rule in the ladder.
+    pending_seen: set[tuple[str, str]] = set()
 
     for idx, rule in enumerate(rules):
         if not _rule_selected(rule, selected):
@@ -908,9 +913,12 @@ async def _resolve_ticket_rules(
                     and not (source_ids & basket_type_ids)
                 )
             if not candidates and wanted:
-                pending.append(
-                    PromoRequirement(code=rule.code, requires="ticket_id")
-                )
+                key = (rule.code or "", "ticket_id")
+                if key not in pending_seen:
+                    pending_seen.add(key)
+                    pending.append(
+                        PromoRequirement(code=rule.code, requires="ticket_id")
+                    )
             continue
         source = resolved[(idx, token)]
         if not allow_consumed and not _ticket_voucher_available(source, rule, now):
