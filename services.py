@@ -830,8 +830,31 @@ async def _resolve_ticket_rules(
     reasons: dict[str, str] = {}
     exhausted: set[str] = set()
     gate_blocked: set[str] = set()
+    def _scope_rank(rule) -> int:
+        """Prefer a rule whose discount scope covers something in the basket.
+
+        One holder can be entitled to different percentages on different ticket
+        types — 50% off another weekend ticket, 25% off a one-day pass. The
+        source ticket satisfies both rules, so without this the first rule in
+        config order binds and its scope is then absent from the basket, which
+        evaluates the discount to zero and looks to the buyer like a dead code.
+
+        Only reorders rules the ticket ALREADY satisfies, and only where a rule
+        carries a target scope: basket-wide rules and codeless grants score 0,
+        so their relative order is untouched.
+        """
+        if _rule_grants(rule):
+            return 0
+        scope = set(getattr(rule, "ticket_type_ids", None) or [])
+        if not scope or not basket_type_ids:
+            return 0
+        return 0 if (scope & basket_type_ids) else 1
+
     for token in candidates:
-        for idx in sorted(range(len(rules)), key=lambda i: (_rank(rules[i]), i)):
+        for idx in sorted(
+            range(len(rules)),
+            key=lambda i: (_rank(rules[i]), _scope_rank(rules[i]), i),
+        ):
             rule = rules[idx]
             # Resolve BEFORE the basket-shape gate so a valid ticket that simply
             # doesn't fit the basket gets an accurate reason instead of falling
